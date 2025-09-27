@@ -330,7 +330,7 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
           )}
 
           {/* Moving Scale - shows when diameter step is active */}
-          {step >= 0 && (
+          {step === 0 && (
             <g transform={`translate(50, 300)`}>
               {/* Scale background */}
               <rect
@@ -464,7 +464,7 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
                   fill="rgba(255,255,255,0.6)"
                   className="animate-fade-in"
                 >
-                  ←
+                  
                 </text>
               )}
 
@@ -477,7 +477,7 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
                   fill="rgba(255,255,255,0.6)"
                   className="animate-fade-in"
                 >
-                  →
+                  
                 </text>
               )}
             </g>
