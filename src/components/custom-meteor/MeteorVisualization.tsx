@@ -308,7 +308,7 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
     <div className={cn("w-full aspect-square rounded-2xl border p-4", className)}>
       <div ref={stageRef} className="relative h-full w-full">
         {/* Background (moved out of SVG so canvas can be seen) */}
-        <div className="absolute inset-0 z-0 bg-muted" aria-hidden />
+        <div className="absolute inset-0 z-0 bg-black" aria-hidden />
 
         {/* Canvas stars (between background and SVG content) */}
         <CanvasStars
