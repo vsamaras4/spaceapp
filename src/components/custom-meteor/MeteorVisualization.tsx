@@ -302,7 +302,7 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
   const meteorPosition = Math.max(0, Math.min(scaleWidth, xForSize(meteorSize)));
 
   // Stage wrapper to co-locate background, canvas, and svg
-  const stageRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null!);
 
   return (
     <div className={cn("w-full aspect-square rounded-2xl border p-4", className)}>
