@@ -2,6 +2,9 @@
 import { cn } from "@/lib/utils";
 import type { MeteorState, WizardStep } from "@/lib/meteor";
 import { useEffect, useRef } from "react";
+// ⬇️ shadcn/ui imports
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 interface MeteorVisualizationProps {
   state: MeteorState;
@@ -26,7 +29,6 @@ function CanvasStars({
   // live velocity ref (so changing the slider doesn't recreate the effect)
   const velRef = useRef(velocity);
   useEffect(() => {
-    // clamp so calculations are stable
     velRef.current = Math.min(72, Math.max(12, velocity));
   }, [velocity]);
 
@@ -99,7 +101,6 @@ function CanvasStars({
       const STAR_MAIN = 5 * pxScale;
       const STAR_TRAIL = 4.2 * pxScale;
 
-      // we *don’t* resize buffers; use a live clamp for logical trail length
       const trailLenLive = Math.round(2 + norm * 6); // 2→8 (≤ MAX_TRAIL_LEN)
 
       return { pxPerSec, spawnInterval, STAR_MAIN, STAR_TRAIL, trailLenLive };
@@ -110,8 +111,8 @@ function CanvasStars({
       if (poolRef.current.length >= MAX_DOTS) return;
       const stg = stageRef.current!;
       const h = stg.clientHeight || 400;
-      const bandTop = 50 / SCALE_BASE;
-      const bandBot = 250 / SCALE_BASE;
+      const bandTop = 25 / SCALE_BASE;
+      const bandBot = 375 / SCALE_BASE;
       const y = (bandTop + Math.random() * (bandBot - bandTop)) * h;
       const opacity = 0.7 + Math.random() * 0.3;
       const angle = Math.random() * Math.PI * 2; // radians
@@ -236,7 +237,8 @@ function CanvasStars({
     if (enabled) start(); else {
       stop();
       // don't clear the pool here; keep stars when toggling speeds elsewhere
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const c = canvasRef.current;
+      if (c) ctx.clearRect(0, 0, c.width, c.height);
     }
 
     return () => {
@@ -250,7 +252,6 @@ function CanvasStars({
 
   return null;
 }
-
 
 export function MeteorVisualization({ state, step, className }: MeteorVisualizationProps) {
   // --- Visual scalars (independent of the reference scale logic) ---
@@ -304,10 +305,16 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
   // Stage wrapper to co-locate background, canvas, and svg
   const stageRef = useRef<HTMLDivElement>(null!);
 
+  // ---- Speed gauge values
+  const MIN_V = 12;
+  const MAX_V = 72;
+  const vClamped = Math.max(MIN_V, Math.min(MAX_V, state.velocity_kms));
+  const pct = ((vClamped - MIN_V) / (MAX_V - MIN_V)) * 100;
+
   return (
     <div className={cn("w-full aspect-square rounded-2xl border p-4", className)}>
       <div ref={stageRef} className="relative h-full w-full">
-        {/* Background (moved out of SVG so canvas can be seen) */}
+        {/* Background */}
         <div className="absolute inset-0 z-0 bg-black" aria-hidden />
 
         {/* Canvas stars (between background and SVG content) */}
@@ -319,8 +326,6 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
 
         {/* SVG content on top */}
         <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full z-10">
-          {/* Background rect REMOVED so it doesn't cover the canvas */}
-
           {/* Ground only when angle step is active to avoid previewing future info */}
           {showAngle && (
             <g>
@@ -453,33 +458,6 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
               >
                 Size Scale - Focus: {closestReference.name}
               </text>
-
-              {/* Navigation indicators */}
-              {closestIndex > 0 && (
-                <text
-                  x={10}
-                  y={scaleHeight / 2}
-                  textAnchor="middle"
-                  fontSize={16}
-                  fill="rgba(255,255,255,0.6)"
-                  className="animate-fade-in"
-                >
-                  
-                </text>
-              )}
-
-              {closestIndex < sortedRefs.length - 1 && (
-                <text
-                  x={scaleWidth - 10}
-                  y={scaleHeight / 2}
-                  textAnchor="middle"
-                  fontSize={16}
-                  fill="rgba(255,255,255,0.6)"
-                  className="animate-fade-in"
-                >
-                  
-                </text>
-              )}
             </g>
           )}
 
@@ -518,6 +496,29 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
             </g>
           )}
         </svg>
+
+        {/* ⬇️ Speed Gauge (shadcn) — always visible, bottom center */}
+        {step === 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+            <Card className="pointer-events-auto bg-background/70 backdrop-blur border-white/10 shadow-lg w-[280px]">
+              <CardContent className="p-3">
+                <div className="flex items-end justify-between">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Speed</div>
+                  <div className="text-sm tabular-nums font-medium">
+                    {Math.round(state.velocity_kms)} <span className="text-muted-foreground">km/s</span>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <Progress value={pct} className="h-2" />
+                  <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+                    <span>{MIN_V} km/s</span>
+                    <span>{MAX_V} km/s</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
