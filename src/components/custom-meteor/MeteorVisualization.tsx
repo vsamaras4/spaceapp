@@ -1,6 +1,7 @@
 // components/custom-meteor/MeteorVisualization.tsx
 import { cn } from "@/lib/utils";
 import type { MeteorState, WizardStep } from "@/lib/meteor";
+import { useEffect, useState } from "react";
 
 interface MeteorVisualizationProps {
   state: MeteorState;
@@ -8,9 +9,109 @@ interface MeteorVisualizationProps {
   className?: string;
 }
 
+interface VelocityDotsProps {
+  velocity: number;
+  isVisible: boolean;
+}
+
+function VelocityDots({ velocity, isVisible }: VelocityDotsProps) {
+  const [dots, setDots] = useState<Array<{ 
+    id: number; 
+    x: number; 
+    y: number; 
+    trail: Array<{ x: number; y: number; opacity: number }>;
+    opacity: number;
+  }>>([]);
+  const [nextId, setNextId] = useState(0);
+
+  // Calculate dot speed based on velocity (normalized to 0-1 range, then scaled)
+  const normalizedVelocity = (velocity - 12) / (72 - 12); // Normalize to 0-1
+  const dotSpeed = 0.5 + normalizedVelocity * 2; // Speed between 0.5 and 2.5
+  const trailLength = Math.max(3, Math.min(15, Math.round(dotSpeed * 3))); // Trail length based on speed
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const interval = setInterval(() => {
+      // Generate new dots from the right side
+      const newDot = {
+        id: nextId,
+        x: 400, // Start from right edge
+        y: Math.random() * 200 + 50, // Random Y position in the middle area
+        opacity: 0.7 + Math.random() * 0.3, // Random opacity between 0.7-1.0
+        trail: [] as Array<{ x: number; y: number; opacity: number }>,
+      };
+
+      setDots(prev => [...prev, newDot]);
+      setNextId(prev => prev + 1);
+    }, 200); // Generate new dot every 200ms
+
+    return () => clearInterval(interval);
+  }, [isVisible, nextId]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const animationInterval = setInterval(() => {
+      setDots(prev => 
+        prev
+          .map(dot => {
+            // Add current position to trail
+            const newTrailPoint = {
+              x: dot.x,
+              y: dot.y,
+              opacity: dot.opacity,
+            };
+            
+            const updatedTrail = [newTrailPoint, ...dot.trail].slice(0, trailLength);
+            
+            return {
+              ...dot,
+              x: dot.x - dotSpeed, // Move left
+              trail: updatedTrail,
+            };
+          })
+          .filter(dot => dot.x > -50) // Remove dots that are off-screen
+      );
+    }, 16); // ~60fps
+
+    return () => clearInterval(animationInterval);
+  }, [isVisible, dotSpeed, trailLength]);
+
+  if (!isVisible) return null;
+
+  return (
+    <g>
+      {dots.map(dot => (
+        <g key={dot.id}>
+          {/* Render trail */}
+          {dot.trail.map((trailPoint, index) => (
+            <circle
+              key={`${dot.id}-trail-${index}`}
+              cx={trailPoint.x}
+              cy={trailPoint.y}
+              r={1.2}
+              fill="rgba(255, 255, 255, 0.4)"
+              opacity={trailPoint.opacity * (1 - index / trailLength) * 0.6} // Fade trail points
+            />
+          ))}
+          {/* Render main dot */}
+          <circle
+            cx={dot.x}
+            cy={dot.y}
+            r={1.5}
+            fill="rgba(255, 255, 255, 0.8)"
+            opacity={dot.opacity}
+          />
+        </g>
+      ))}
+    </g>
+  );
+}
+
 export function MeteorVisualization({ state, step, className }: MeteorVisualizationProps) {
   // --- Visual scalars (independent of the reference scale logic) ---
-  const r = Math.max(8, Math.min(64, state.diameter_m / 10));          // meteor radius
+  const r = Math.max(10, Math.min(100, state.diameter_m / 100));          // meteor radius
   const tailLen = Math.max(20, Math.min(100, state.velocity_kms * 2)); // tail length
   const angle = state.angle_deg;
 
@@ -73,6 +174,9 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
           </linearGradient>
         </defs>
         <rect width="400" height="400" fill="url(#sky)" className="fill-muted" />
+
+        {/* Velocity dots layer - only show during velocity step */}
+        <VelocityDots velocity={state.velocity_kms} isVisible={step === 1} />
 
         {/* Ground only when angle step is active to avoid previewing future info */}
         {showAngle && (
