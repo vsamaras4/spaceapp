@@ -9,7 +9,6 @@ interface MeteorVisualizationProps {
   className?: string;
 }
 
-/** Canvas-based star field (fast, no React churn) */
 function CanvasStars({
   velocity,      // km/s
   enabled,       // render only on velocity step
@@ -24,6 +23,13 @@ function CanvasStars({
   const lastTsRef = useRef<number | null>(null);
   const spawnAccRef = useRef(0);
 
+  // live velocity ref (so changing the slider doesn't recreate the effect)
+  const velRef = useRef(velocity);
+  useEffect(() => {
+    // clamp so calculations are stable
+    velRef.current = Math.min(72, Math.max(12, velocity));
+  }, [velocity]);
+
   // Pool
   type Dot = {
     x: number; y: number; vx: number; opacity: number; angle: number;
@@ -32,12 +38,15 @@ function CanvasStars({
   const poolRef = useRef<Dot[]>([]);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
+  // constants
   const SCALE_BASE = 400;
+  const MAX_DOTS = 140;
+  const MAX_TRAIL_LEN = 8; // fixed to avoid reallocation
 
   useEffect(() => {
     if (!stageRef.current) return;
 
-    // Create canvas if needed (z-5 so it sits between bg and SVG)
+    // Create canvas if needed (between bg and SVG)
     if (!canvasRef.current) {
       const c = document.createElement("canvas");
       c.className = "absolute inset-0 z-5 pointer-events-none";
@@ -56,7 +65,6 @@ function CanvasStars({
     const ctx = canvas.getContext("2d", { alpha: true })!;
     let dpr = Math.max(1, window.devicePixelRatio || 1);
 
-    // Resize to match stage
     const resize = () => {
       if (!stageRef.current) return;
       const { clientWidth, clientHeight } = stageRef.current;
@@ -67,56 +75,53 @@ function CanvasStars({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
-
     const ro = new ResizeObserver(resize);
     ro.observe(stageRef.current);
-
-    // Params derived from velocity (clamped 12..72)
-    const v = Math.min(72, Math.max(12, velocity));
-    const norm = (v - 12) / (72 - 12); // 0..1
-
-    // Speeds & spawn rates scale with width
-    const widthPx = stageRef.current.clientWidth || 400;
-    const pxScale = widthPx / SCALE_BASE;
-    const pxPerSec = (50 + norm * 140) * pxScale;    // 50 → 190 px/s
-    const spawnPerSec = 4 + norm * 10;               // 4 → 14 stars/s
-    const spawnInterval = 1 / spawnPerSec;
-
-    // Sizes (scaled)
-    const STAR_MAIN = 10 * pxScale;
-    const STAR_TRAIL = 2.2 * pxScale;
-
-    // Trail length
-    const TRAIL_LEN = Math.round(2 + norm * 6); // 2 → 8
-
-    // Band for Y where stars fly (match your SVG ~50..250)
-    const bandTop = 50 / SCALE_BASE;
-    const bandBot = 250 / SCALE_BASE;
-
-    // Caps
-    const MAX_DOTS = 140;
-
-    const spawn = () => {
-      if (poolRef.current.length >= MAX_DOTS) return;
-      const stg = stageRef.current!;
-      const h = stg.clientHeight || 400;
-      const y = (bandTop + Math.random() * (bandBot - bandTop)) * h;
-      const opacity = 0.7 + Math.random() * 0.3;
-      const angle = Math.random() * Math.PI * 2; // radians
-      const vx = -pxPerSec;
-
-      const tx = new Float32Array(TRAIL_LEN);
-      const ty = new Float32Array(TRAIL_LEN);
-      const to = new Float32Array(TRAIL_LEN);
-      const dot: Dot = { x: stg.clientWidth, y, vx, opacity, angle, tx, ty, to, head: 0, len: 0 };
-      poolRef.current.push(dot);
-    };
 
     const clearAll = () => {
       poolRef.current.length = 0;
       spawnAccRef.current = 0;
       lastTsRef.current = null;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+
+    // helper: compute live params from current velocity + size
+    const getParams = () => {
+      const v = velRef.current;
+      const norm = (v - 12) / (72 - 12);             // 0..1
+      const widthPx = stageRef.current!.clientWidth || 400;
+      const pxScale = widthPx / SCALE_BASE;
+
+      const pxPerSec = (50 + norm * 140) * pxScale;  // 50→190 px/s
+      const spawnPerSec = 4 + norm * 10;             // 4→14 stars/s
+      const spawnInterval = 1 / spawnPerSec;
+
+      const STAR_MAIN = 5 * pxScale;
+      const STAR_TRAIL = 4.2 * pxScale;
+
+      // we *don’t* resize buffers; use a live clamp for logical trail length
+      const trailLenLive = Math.round(2 + norm * 6); // 2→8 (≤ MAX_TRAIL_LEN)
+
+      return { pxPerSec, spawnInterval, STAR_MAIN, STAR_TRAIL, trailLenLive };
+    };
+
+    // Spawn a new star using current params
+    const spawn = (pxPerSec: number) => {
+      if (poolRef.current.length >= MAX_DOTS) return;
+      const stg = stageRef.current!;
+      const h = stg.clientHeight || 400;
+      const bandTop = 50 / SCALE_BASE;
+      const bandBot = 250 / SCALE_BASE;
+      const y = (bandTop + Math.random() * (bandBot - bandTop)) * h;
+      const opacity = 0.7 + Math.random() * 0.3;
+      const angle = Math.random() * Math.PI * 2; // radians
+      const vx = -pxPerSec;
+
+      const tx = new Float32Array(MAX_TRAIL_LEN);
+      const ty = new Float32Array(MAX_TRAIL_LEN);
+      const to = new Float32Array(MAX_TRAIL_LEN);
+      const dot: Dot = { x: stg.clientWidth, y, vx, opacity, angle, tx, ty, to, head: 0, len: 0 };
+      poolRef.current.push(dot);
     };
 
     const tick = (ts: number) => {
@@ -129,34 +134,46 @@ function CanvasStars({
       let dt = (ts - last) / 1000;
       lastTsRef.current = ts;
 
-      // Clamp big dt (e.g., after tab resume) to avoid bursts
-      if (dt > 0.08) dt = 0.016;
+      if (dt > 0.08) dt = 0.016; // clamp big gaps
 
       const stg = stageRef.current!;
       const W = stg.clientWidth || 400;
       const H = stg.clientHeight || 400;
 
-      // Move + record trails; compact in place
+      // live params (from current slider value)
+      const { pxPerSec, spawnInterval, STAR_MAIN, STAR_TRAIL, trailLenLive } = getParams();
+      const targetVx = -pxPerSec;
+      const smooth = Math.min(1, dt * 8); // exponential smoothing toward new speed
+
+      // Move + record trails; adjust vx smoothly; compact in place
       let write = 0;
       for (let i = 0; i < poolRef.current.length; i++) {
         const d = poolRef.current[i];
-        if (TRAIL_LEN > 0) {
-          d.tx[d.head] = d.x;
-          d.ty[d.head] = d.y;
-          d.to[d.head] = d.opacity;
-          d.head = (d.head + 1) % TRAIL_LEN;
-          d.len = Math.min(TRAIL_LEN, d.len + 1);
-        }
+
+        // push current pos to ring buffer
+        d.tx[d.head] = d.x;
+        d.ty[d.head] = d.y;
+        d.to[d.head] = d.opacity;
+        d.head = (d.head + 1) % MAX_TRAIL_LEN;
+
+        // logical trail length follows live clamp, no reallocation
+        d.len = Math.min(MAX_TRAIL_LEN, Math.min(trailLenLive, d.len + 1));
+
+        // smoothly adapt velocity to new target
+        d.vx += (targetVx - d.vx) * smooth;
+
+        // integrate
         d.x += d.vx * dt;
+
         if (d.x > -50) poolRef.current[write++] = d;
       }
       poolRef.current.length = write;
 
-      // Spawn (limit to 1 per frame)
+      // Spawn at live rate (limit to 1 per frame to avoid spikes)
       spawnAccRef.current += dt;
       if (spawnAccRef.current >= spawnInterval) {
         spawnAccRef.current -= Math.floor(spawnAccRef.current / spawnInterval) * spawnInterval;
-        if (poolRef.current.length < MAX_DOTS) spawn();
+        if (poolRef.current.length < MAX_DOTS) spawn(pxPerSec);
       }
 
       // Draw
@@ -166,9 +183,9 @@ function CanvasStars({
         for (let i = 0; i < poolRef.current.length; i++) {
           const d = poolRef.current[i];
 
-          // Trail
+          // trail (older → more transparent)
           for (let t = 0; t < d.len; t++) {
-            const idx = (d.head - 1 - t + TRAIL_LEN) % TRAIL_LEN;
+            const idx = (d.head - 1 - t + MAX_TRAIL_LEN) % MAX_TRAIL_LEN;
             const alpha = d.to[idx] * (1 - t / Math.max(1, d.len)) * 0.6;
             if (alpha <= 0.01) continue;
             ctx.save();
@@ -179,7 +196,7 @@ function CanvasStars({
             ctx.restore();
           }
 
-          // Main sprite
+          // main sprite
           ctx.save();
           ctx.translate(d.x, d.y);
           ctx.rotate(d.angle);
@@ -207,26 +224,33 @@ function CanvasStars({
     const onVis = () => {
       if (document.visibilityState === "hidden") {
         stop();
-        clearAll(); // no catch-up on return
+        // no catch-up on return, but keep stars; just reset timers
+        spawnAccRef.current = 0;
+        lastTsRef.current = null;
       } else if (enabled) {
         start();
       }
     };
 
     document.addEventListener("visibilitychange", onVis);
-    if (enabled) start(); else clearAll();
+    if (enabled) start(); else {
+      stop();
+      // don't clear the pool here; keep stars when toggling speeds elsewhere
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
 
     return () => {
       document.removeEventListener("visibilitychange", onVis);
       stop();
-      clearAll();
+      // keep canvas node & pool for reuse across re-mounts of SVG wrapper
       ro.disconnect();
-      // keep canvas node mounted for reuse
     };
-  }, [enabled, velocity, stageRef]);
+  // IMPORTANT: don't depend on `velocity`, so stars don't reset on slider move
+  }, [enabled, stageRef]);
 
   return null;
 }
+
 
 export function MeteorVisualization({ state, step, className }: MeteorVisualizationProps) {
   // --- Visual scalars (independent of the reference scale logic) ---
