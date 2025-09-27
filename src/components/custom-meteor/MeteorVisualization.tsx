@@ -10,7 +10,7 @@ interface MeteorVisualizationProps {
 
 export function MeteorVisualization({ state, step, className }: MeteorVisualizationProps) {
   // --- Visual scalars (independent of the reference scale logic) ---
-  const r = Math.max(8, Math.min(32, state.diameter_m / 10));          // meteor radius
+  const r = Math.max(8, Math.min(64, state.diameter_m / 10));          // meteor radius
   const tailLen = Math.max(20, Math.min(100, state.velocity_kms * 2)); // tail length
   const angle = state.angle_deg;
 
@@ -84,7 +84,7 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
 
         {/* Moving Scale - shows when diameter step is active */}
         {step >= 0 && (
-          <g transform={`translate(50, 200)`}>
+          <g transform={`translate(50, 300)`}>
             {/* Scale background */}
             <rect
               x={0}
@@ -237,7 +237,7 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
         )}
 
         {/* Approach group (rotates when angle is active) */}
-        <g transform={showAngle ? `translate(200,180) rotate(${180 - angle})` : `translate(200,180)`}>
+        <g transform={showAngle ? `translate(200,100) rotate(${180 - angle})` : `translate(200,100)`}>
           {/* Tail (only on/after velocity step) */}
           {showTail && (
             <g>
