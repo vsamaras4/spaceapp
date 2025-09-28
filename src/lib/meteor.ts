@@ -35,7 +35,7 @@ angle_deg: ANGLE.avg,
 };
 
 
-export type WizardStep = 0 | 1 | 2 | 3 | 4 | 5; // 3 = Review, 4 = Impact Location, 5 = Impact Results
+export type WizardStep = 0 | 1 | 2 | 3 | 4; // 3 = Impact Location, 4 = Impact Results
 
 
 export function clamp(n: number, min: number, max: number) {
