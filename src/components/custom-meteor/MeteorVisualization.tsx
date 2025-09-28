@@ -10,6 +10,7 @@ interface MeteorVisualizationProps {
   state: MeteorState;
   step: WizardStep;
   className?: string;
+  onLocationSelect?: (x: number, y: number) => void;
 }
 
 function CanvasStars({
@@ -253,14 +254,15 @@ function CanvasStars({
   return null;
 }
 
-export function MeteorVisualization({ state, step, className }: MeteorVisualizationProps) {
+export function MeteorVisualization({ state, step, className, onLocationSelect }: MeteorVisualizationProps) {
   // --- Visual scalars (independent of the reference scale logic) ---
   const r = Math.max(10, Math.min(100, state.diameter_m / 100));          // meteor radius
   const tailLen = Math.max(20, Math.min(100, state.velocity_kms * 2));     // tail length
   const angle = state.angle_deg;
 
-  const showTail = step >= 1;
-  const showAngle = step >= 2;
+  const showTail = step >= 1 && step < 5;
+  const showAngle = step >= 2 && step < 5;
+  const showWorldMap = step >= 4;
 
   // --- Reference objects (real-world linear spans in meters; ≤ 10,000 m) ---
   const referenceObjects = [
@@ -304,6 +306,17 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
 
   // Stage wrapper to co-locate background, canvas, and svg
   const stageRef = useRef<HTMLDivElement>(null!);
+  
+  // Handle world map clicks
+  const handleMapClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (!showWorldMap || !onLocationSelect) return;
+    
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 400;
+    const y = ((event.clientY - rect.top) / rect.height) * 400;
+    
+    onLocationSelect(x, y);
+  };
 
   // ---- Speed gauge values
   const MIN_V = 12;
@@ -316,6 +329,13 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
       <div ref={stageRef} className="relative h-full w-full">
         {/* Background */}
         <div className="absolute inset-0 z-0 bg-black" aria-hidden />
+        
+        {/* World Map Background (only on step 4+) */}
+        {showWorldMap && (
+          <div className="absolute inset-0 z-1 transition-opacity duration-1000 ease-in-out" aria-hidden>
+            <div className="absolute inset-0 bg-[url('/WorldMap.svg')] bg-cover bg-center opacity-30 transition-opacity duration-1000 ease-in-out" />
+          </div>
+        )}
 
         {/* Canvas stars (between background and SVG content) */}
         <CanvasStars
@@ -325,9 +345,13 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
         />
 
         {/* SVG content on top */}
-        <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full z-10">
+        <svg 
+          viewBox="0 0 400 400" 
+          className={`absolute inset-0 h-full w-full z-10 ${showWorldMap ? 'cursor-crosshair' : ''}`}
+          onClick={handleMapClick}
+        >
           {/* Ground only when angle step is active to avoid previewing future info */}
-          {showAngle && (
+          {showAngle && step < 4 && (
             <g>
               <rect x="0" y="330" width="400" height="70" className="fill-secondary" />
               <text x="12" y="355" className="fill-muted-foreground text-[12px]">Ground</text>
@@ -462,10 +486,21 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
           )}
 
           {/* Approach group (rotates when angle is active) */}
-          <g transform={showAngle ? `translate(200,100) rotate(${180 - angle})` : `translate(200,100)`}>
-            {/* Tail (only on/after velocity step) */}
-            {showTail && (
-              <g>
+          <g 
+            className="transition-all duration-1000 ease-in-out"
+            transform={
+              step >= 4
+                ? `translate(200,500) rotate(${180 - angle}) scale(4)` 
+                : showWorldMap 
+                  ? `translate(200,320) rotate(${180 - angle}) scale(2.5)` 
+                  : showAngle 
+                    ? `translate(200,100) rotate(${180 - angle})` 
+                    : `translate(200,100)`
+            }
+          >
+            {/* Tail (only on/after velocity step, fades out after step 4) */}
+            {showTail && step < 4 && (
+              <g className="transition-opacity duration-1000 ease-in-out">
                 <rect x={-tailLen - r - 10} y={-4} width={tailLen} height={8} rx={4} className="fill-accent/70" />
                 <rect x={-tailLen - r - 10} y={-2} width={tailLen} height={4} rx={2} className="fill-accent" />
               </g>
@@ -483,15 +518,43 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
               />
             </g>
 
-            {/* Direction nib (only when angle step is active) */}
-            {showAngle && <polygon points={`${r + 8},0 ${r - 8},8 ${r - 8},-8`} className="fill-primary-foreground" />}
+            {/* Direction nib (only when angle step is active, fades out after step 4) */}
+            {showAngle && step < 4 && (
+              <polygon 
+                points={`${r + 8},0 ${r - 8},8 ${r - 8},-8`} 
+                className="fill-primary-foreground transition-opacity duration-1000 ease-in-out" 
+              />
+            )}
           </g>
 
-          {/* Angle label (only when angle step is active) */}
-          {showAngle && (
-            <g>
+          {/* Angle label (only when angle step is active, fades out after step 4) */}
+          {showAngle && step < 4 && (
+            <g className="transition-opacity duration-1000 ease-in-out">
               <text x="12" y="24" className="fill-foreground text-[12px]">
                 Approach angle: {angle.toFixed(0)}°
+              </text>
+            </g>
+          )}
+
+          {/* Impact location indicator (only on world map step) */}
+          {showWorldMap && state.impactLocation && (
+            <g>
+              <circle
+                cx={state.impactLocation.x}
+                cy={state.impactLocation.y}
+                r="8"
+                fill="red"
+                stroke="white"
+                strokeWidth="2"
+                className="animate-pulse"
+              />
+              <text
+                x={state.impactLocation.x}
+                y={state.impactLocation.y - 15}
+                textAnchor="middle"
+                className="fill-white text-[10px] font-bold"
+              >
+                Impact Site
               </text>
             </g>
           )}

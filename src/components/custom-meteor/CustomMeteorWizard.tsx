@@ -22,7 +22,7 @@ export default function CustomMeteorWizard({ onComplete }: CustomMeteorWizardPro
   const [step, setStep] = useState<WizardStep>(0);
 
   const nextStep = () => {
-    if (step < 3) {
+    if (step < 5) {
       setStep((step + 1) as WizardStep);
     } else if (onComplete) {
       // Final step - complete the wizard
@@ -39,14 +39,16 @@ export default function CustomMeteorWizard({ onComplete }: CustomMeteorWizardPro
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Step {step + 1} of 4</CardTitle>
-            <Progress value={(step + 1) * 25} className="w-full" />
+            <CardTitle>Step {step + 1} of 6</CardTitle>
+            <Progress value={(step + 1) * (100/6)} className="w-full" />
           </CardHeader>
           <CardContent>
             {step === 0 && <DiameterStep state={state} setState={setState} />}
             {step === 1 && <VelocityStep state={state} setState={setState} />}
             {step === 2 && <AngleStep state={state} setState={setState} />}
             {step === 3 && <ReviewStep state={state} />}
+            {step === 4 && <ImpactLocationStep state={state} setState={setState} />}
+            {step === 5 && <ImpactResultsStep state={state} />}
             
             <Hints step={step} />
             
@@ -55,7 +57,7 @@ export default function CustomMeteorWizard({ onComplete }: CustomMeteorWizardPro
                 Previous
               </Button>
               <Button onClick={nextStep}>
-                {step === 3 ? "Create Meteor" : "Next"}
+                {step === 5 ? "Complete" : step === 4 ? "Calculate Impact" : step === 3 ? "Select Impact Location" : "Next"}
               </Button>
             </div>
           </CardContent>
@@ -63,7 +65,11 @@ export default function CustomMeteorWizard({ onComplete }: CustomMeteorWizardPro
       </div>
       
       <div>
-        <MeteorVisualization state={state} step={step} />
+        <MeteorVisualization 
+          state={state} 
+          step={step} 
+          onLocationSelect={(x, y) => setState({ ...state, impactLocation: { x, y } })}
+        />
       </div>
     </div>
   );
@@ -205,7 +211,37 @@ function ReviewStep({ state }: { state: MeteorState }) {
         <ReviewRow label="Velocity" value={`${round(state.velocity_kms, 1)} km/s`} />
         <ReviewRow label="Impact Angle" value={`${round(state.angle_deg)}°`} />
       </div>
-      <p className="text-xs text-muted-foreground">On the next screen, your existing Impact & Info flow runs unchanged.</p>
+      <p className="text-xs text-muted-foreground">Next, select where on Earth your meteor will impact.</p>
+    </div>
+  );
+}
+
+function ImpactLocationStep({ state, setState }: { state: MeteorState; setState: (state: MeteorState) => void }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Click on the world map below to select your meteor's impact location. The impact effects will be calculated based on this location.
+      </p>
+      <div className="text-center text-sm text-muted-foreground">
+        <p>Impact location will be selected on the map visualization</p>
+      </div>
+    </div>
+  );
+}
+
+function ImpactResultsStep({ state }: { state: MeteorState }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Impact simulation complete! Your meteor has impacted the selected location.
+      </p>
+      <div className="grid gap-3">
+        <ReviewRow label="Impact Location" value={state.impactLocation ? `(${Math.round(state.impactLocation.x)}, ${Math.round(state.impactLocation.y)})` : "Not selected"} />
+        <ReviewRow label="Meteor Diameter" value={`${prettyNumber(state.diameter_m)} m`} />
+        <ReviewRow label="Impact Velocity" value={`${round(state.velocity_kms, 1)} km/s`} />
+        <ReviewRow label="Impact Angle" value={`${round(state.angle_deg)}°`} />
+      </div>
+      <p className="text-xs text-muted-foreground">Impact calculations and results will be displayed here.</p>
     </div>
   );
 }
@@ -225,7 +261,9 @@ function Hints({ step }: { step: WizardStep }) {
       {step === 0 && <p>Tip: you can click min/avg/max to quickly test edge cases.</p>}
       {step === 1 && <p>Tip: velocity increases tail length in the viz—purely illustrative.</p>}
       {step === 2 && <p>Tip: angle rotates the approach vector; ground appears only on this step.</p>}
-      {step === 3 && <p>Ready to hand off to Impact & Info.</p>}
+      {step === 3 && <p>Ready to select impact location on the world map.</p>}
+      {step === 4 && <p>Click anywhere on the world map to select your impact location.</p>}
+      {step === 5 && <p>Impact simulation complete! The meteor has reached its destination.</p>}
     </div>
   );
 }
