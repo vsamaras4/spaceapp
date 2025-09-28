@@ -266,7 +266,7 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
   const showMeteor = step >= 0 && step < 3;
   const showTail = step >= 1 && step < 3;
   const showAngle = step >= 2 && step < 3;
-  const showWorldMap = step >= 3;
+  const showWorldMap = step >= 5;
 
   // --- Reference objects (real-world linear spans in meters; ≤ 10,000 m) ---
   const referenceObjects = [
