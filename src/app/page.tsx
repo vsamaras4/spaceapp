@@ -65,6 +65,7 @@ export default function Page() {
   const [currentView, setCurrentView] = useState<AppView>("home");
   const [selectedMeteor, setSelectedMeteor] = useState<MeteorState | null>(null);
   const [previousView, setPreviousView] = useState<AppView>("home");
+  const [forceImpactEffects, setForceImpactEffects] = useState(false);
 
   const updateMeteor = (updater: (prev: MeteorState) => MeteorState) => {
     setSelectedMeteor((prev) => {
@@ -89,12 +90,14 @@ export default function Page() {
       impactLocation: meteor.coords
     });
     setPreviousView("existing");
+    setForceImpactEffects(true);
     setCurrentView("analysis");
   };
 
   const handleCustomMeteorComplete = (meteor: MeteorState) => {
     setSelectedMeteor(meteor);
     setPreviousView("custom");
+    setForceImpactEffects(false);
     setCurrentView("analysis");
   };
 
@@ -102,10 +105,12 @@ export default function Page() {
     setCurrentView("home");
     setSelectedMeteor(null);
     setPreviousView("home");
+    setForceImpactEffects(false);
   };
 
   const goBack = () => {
     if (currentView === "analysis") {
+      setForceImpactEffects(false);
       setCurrentView(previousView);
     } else if (currentView === "custom") {
       setCurrentView("home");
@@ -266,6 +271,7 @@ export default function Page() {
 
   // Analysis View
   if (currentView === "analysis" && selectedMeteor) {
+    const shouldForceImpactEffects = forceImpactEffects && Boolean(selectedMeteor.impactLocation);
     return (
       <main className="container mx-auto max-w-6xl p-6">
         <div className="mb-6">
@@ -300,7 +306,7 @@ export default function Page() {
               state={selectedMeteor}
               step={6}
               onLocationSelect={handleLocationSelect}
-              showImpactEffects
+              showImpactEffects={shouldForceImpactEffects}
             />
             <p className="text-xs text-muted-foreground">
               Tip: Click the map to adjust the impact location and instantly update the destruction radii.
