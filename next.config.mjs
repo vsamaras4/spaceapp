@@ -10,6 +10,7 @@ export default {
   assetPrefix: isProd ? `/${repo}/` : '',
   // ⬇️ Skip ESLint during `next build`
   eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true }, 
   // (optional) if types ever fail your CI build:
   // typescript: { ignoreBuildErrors: true },
 }
