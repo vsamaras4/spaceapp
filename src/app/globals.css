@@ -137,3 +137,10 @@
     animation: fade-in 0.6s ease-out forwards;
   }
 }
+
+.mapboxgl-map {
+  font: 12px / 20px Helvetica Neue, Arial, Helvetica, sans-serif;
+    overflow: hidden;
+    position: inherit !important; 
+    -webkit-tap-highlight-color: rgb(0 0 0 / 0);
+}
