@@ -165,6 +165,8 @@ const MapboxMap = forwardRef<MapboxMapHandle, MapboxMapProps>(
       let cancelled = false;
       if (!containerRef.current) return;
 
+      setError(null);
+
       loadMapbox()
         .then((mapbox) => {
           if (cancelled || !containerRef.current) return;
@@ -188,6 +190,16 @@ const MapboxMap = forwardRef<MapboxMapHandle, MapboxMapProps>(
           mapRef.current = map;
           mapReadyRef.current = false;
 
+          const handleMapError = (event: { error?: { message?: string } | Error }) => {
+            const mapError = event?.error;
+            if (!mapError) return;
+            const message =
+              mapError instanceof Error
+                ? mapError.message
+                : mapError.message ?? "Mapbox reported an unknown error";
+            setError(message);
+          };
+
           const handleClick = (event: { lngLat: { lng: number; lat: number } }) => {
             const markerInstance = ensureMarker();
             if (markerInstance) {
@@ -198,6 +210,7 @@ const MapboxMap = forwardRef<MapboxMapHandle, MapboxMapProps>(
           };
 
           map.on("click", handleClick);
+          map.on("error", handleMapError);
 
           const ro = new ResizeObserver(() => {
             map.resize();
@@ -219,6 +232,7 @@ const MapboxMap = forwardRef<MapboxMapHandle, MapboxMapProps>(
 
           cleanupRef.current = () => {
             ro.disconnect();
+            map.off("error", handleMapError);
             map.off("click", handleClick);
             if (markerRef.current) {
               markerRef.current.remove?.();
