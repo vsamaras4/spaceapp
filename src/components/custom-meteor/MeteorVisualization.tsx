@@ -1,16 +1,19 @@
+"use client";
+
 // components/custom-meteor/MeteorVisualization.tsx
 import { cn } from "@/lib/utils";
 import type { MeteorState, WizardStep } from "@/lib/meteor";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 // ⬇️ shadcn/ui imports
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import MapboxMap, { type MapboxMapHandle } from "../map/MapboxMap";
 
 interface MeteorVisualizationProps {
   state: MeteorState;
   step: WizardStep;
   className?: string;
-  onLocationSelect?: (x: number, y: number) => void;
+  onLocationSelect?: (lng: number, lat: number) => void;
 }
 
 function CanvasStars({
@@ -306,17 +309,28 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
 
   // Stage wrapper to co-locate background, canvas, and svg
   const stageRef = useRef<HTMLDivElement>(null!);
-  
-  // Handle world map clicks
-  const handleMapClick = (event: React.MouseEvent<SVGSVGElement>) => {
-    if (!showWorldMap || !onLocationSelect) return;
-    
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 400;
-    const y = ((event.clientY - rect.top) / rect.height) * 400;
-    
-    onLocationSelect(x, y);
-  };
+  const mapRef = useRef<MapboxMapHandle | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+
+  useEffect(() => {
+    if (!showWorldMap) {
+      setMapReady(false);
+    }
+  }, [showWorldMap]);
+
+  useEffect(() => {
+    if (!showWorldMap || !mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (state.impactLocation) {
+      map.setMarker(state.impactLocation);
+      map.flyTo(state.impactLocation, { zoom: 4 });
+    } else {
+      map.clearMarker();
+      map.showWorldView();
+    }
+  }, [showWorldMap, mapReady, state.impactLocation]);
 
   // ---- Speed gauge values
   const MIN_V = 12;
@@ -330,11 +344,15 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
         {/* Background */}
         <div className="absolute inset-0 z-0 bg-black" aria-hidden />
         
-        {/* World Map Background (only on step 4+) */}
+        {/* Interactive world map (Mapbox) */}
         {showWorldMap && (
-          <div className="absolute inset-0 z-1 transition-opacity duration-1000 ease-in-out" aria-hidden>
-            <div className="absolute inset-0 bg-[url('/WorldMap.svg')] bg-cover bg-center opacity-30 transition-opacity duration-1000 ease-in-out" />
-          </div>
+          <MapboxMap
+            ref={mapRef}
+            className="absolute inset-0 z-1 overflow-hidden rounded-[inherit]"
+            selectedLocation={state.impactLocation}
+            onReady={() => setMapReady(true)}
+            onSelect={(lng, lat) => onLocationSelect?.(lng, lat)}
+          />
         )}
 
         {/* Canvas stars (between background and SVG content) */}
@@ -345,10 +363,12 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
         />
 
         {/* SVG content on top */}
-        <svg 
-          viewBox="0 0 400 400" 
-          className={`absolute inset-0 h-full w-full z-10 ${showWorldMap ? 'cursor-crosshair' : ''}`}
-          onClick={handleMapClick}
+        <svg
+          viewBox="0 0 400 400"
+          className={cn(
+            "absolute inset-0 h-full w-full z-10",
+            showWorldMap ? "pointer-events-none" : "pointer-events-auto"
+          )}
         >
           {/* Ground only when angle step is active to avoid previewing future info */}
           {showAngle && step < 4 && (
@@ -536,28 +556,6 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
             </g>
           )}
 
-          {/* Impact location indicator (only on world map step) */}
-          {showWorldMap && state.impactLocation && (
-            <g>
-              <circle
-                cx={state.impactLocation.x}
-                cy={state.impactLocation.y}
-                r="8"
-                fill="red"
-                stroke="white"
-                strokeWidth="2"
-                className="animate-pulse"
-              />
-              <text
-                x={state.impactLocation.x}
-                y={state.impactLocation.y - 15}
-                textAnchor="middle"
-                className="fill-white text-[10px] font-bold"
-              >
-                Impact Site
-              </text>
-            </g>
-          )}
         </svg>
 
         {/* ⬇️ Speed Gauge (shadcn) — always visible, bottom center */}

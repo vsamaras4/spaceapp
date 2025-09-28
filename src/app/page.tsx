@@ -92,10 +92,10 @@ export default function Page() {
     }));
   };
 
-  const handleLocationSelect = (x: number, y: number) => {
+  const handleLocationSelect = (lng: number, lat: number) => {
     updateMeteor((prev) => ({
       ...prev,
-      impactLocation: { x, y }
+      impactLocation: { lng, lat }
     }));
   };
 
@@ -280,7 +280,7 @@ export default function Page() {
   // Analysis View
   if (currentView === "analysis" && selectedMeteor) {
     const locationLabel = selectedMeteor.impactLocation
-      ? `(${Math.round(selectedMeteor.impactLocation.x)}, ${Math.round(selectedMeteor.impactLocation.y)})`
+      ? `${selectedMeteor.impactLocation.lat.toFixed(2)}°, ${selectedMeteor.impactLocation.lng.toFixed(2)}°`
       : "Not selected";
 
     return (

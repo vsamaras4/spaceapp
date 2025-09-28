@@ -1,9 +1,14 @@
 // lib/meteor.ts
+export type GeoLocation = {
+  lat: number;
+  lng: number;
+};
+
 export type MeteorState = {
-diameter_m: number; // meters
-velocity_kms: number; // km/s
-angle_deg: number; // degrees from horizontal
-impactLocation?: { x: number; y: number }; // impact location on world map
+  diameter_m: number; // meters
+  velocity_kms: number; // km/s
+  angle_deg: number; // degrees from horizontal
+  impactLocation?: GeoLocation; // impact location on world map (lat/lng)
 };
 
 

@@ -78,10 +78,10 @@ export default function CustomMeteorWizard({ onComplete }: CustomMeteorWizardPro
       </div>
       
       <div>
-        <MeteorVisualization 
-          state={state} 
-          step={step} 
-          onLocationSelect={(x, y) => setState({ ...state, impactLocation: { x, y } })}
+        <MeteorVisualization
+          state={state}
+          step={step}
+          onLocationSelect={(lng, lat) => setState({ ...state, impactLocation: { lng, lat } })}
         />
       </div>
     </div>
@@ -235,7 +235,14 @@ function ImpactResultsStep({ state }: { state: MeteorState }) {
         Impact simulation complete! Your meteor has impacted the selected location.
       </p>
       <div className="grid gap-3">
-        <ReviewRow label="Impact Location" value={state.impactLocation ? `(${Math.round(state.impactLocation.x)}, ${Math.round(state.impactLocation.y)})` : "Not selected"} />
+        <ReviewRow
+          label="Impact Location"
+          value={
+            state.impactLocation
+              ? `${state.impactLocation.lat.toFixed(2)}°, ${state.impactLocation.lng.toFixed(2)}°`
+              : "Not selected"
+          }
+        />
         <ReviewRow label="Meteor Diameter" value={`${prettyNumber(state.diameter_m)} m`} />
         <ReviewRow label="Impact Velocity" value={`${round(state.velocity_kms, 1)} km/s`} />
         <ReviewRow label="Impact Angle" value={`${round(state.angle_deg)}°`} />
