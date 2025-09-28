@@ -260,9 +260,9 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
   const tailLen = Math.max(20, Math.min(100, state.velocity_kms * 2));     // tail length
   const angle = state.angle_deg;
 
-  const showTail = step >= 1 && step < 5;
-  const showAngle = step >= 2 && step < 5;
-  const showWorldMap = step >= 4;
+  const showTail = step >= 1 && step < 3;
+  const showAngle = step >= 2 && step < 3;
+  const showWorldMap = step >= 3;
 
   // --- Reference objects (real-world linear spans in meters; ≤ 10,000 m) ---
   const referenceObjects = [
