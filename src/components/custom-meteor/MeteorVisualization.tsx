@@ -487,7 +487,7 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
 
           {/* Approach group (rotates when angle is active) */}
           <g 
-            className="transition-all duration-1000 ease-in-out"
+            className="transition-all duration-250 ease-in-out"
             transform={
               step >= 4
                 ? `translate(200,500) rotate(${180 - angle}) scale(4)` 
@@ -522,14 +522,14 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
             {showAngle && step < 4 && (
               <polygon 
                 points={`${r + 8},0 ${r - 8},8 ${r - 8},-8`} 
-                className="fill-primary-foreground transition-opacity duration-1000 ease-in-out" 
+                className="fill-yellow-400 transition-opacity duration-250 ease-in-out" 
               />
             )}
           </g>
 
           {/* Angle label (only when angle step is active, fades out after step 4) */}
           {showAngle && step < 4 && (
-            <g className="transition-opacity duration-1000 ease-in-out">
+            <g className="transition-opacity duration-250 ease-in-out">
               <text x="12" y="24" className="fill-foreground text-[12px]">
                 Approach angle: {angle.toFixed(0)}°
               </text>
