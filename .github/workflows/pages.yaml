@@ -16,17 +16,26 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
       - run: npm ci --legacy-peer-deps
-      - run: npm run build              # writes static site to ./out
-      - run: touch out/.nojekyll        # ensure _next is served on Pages
+      - name: Build (uses secret)
+        run: npm run build                 # writes static site to ./out
+        env:
+          API_KEY: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}  # <-- rename if your secret has a different name
+          # If you also need a public key in the client, add as a secret and uncomment:
+          # NEXT_PUBLIC_SOME_KEY: ${{ secrets.NEXT_PUBLIC_SOME_KEY }}
+      - run: touch out/.nojekyll           # ensure _next is served on Pages
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./out
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
