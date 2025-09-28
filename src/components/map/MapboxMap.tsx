@@ -40,6 +40,10 @@ export interface MapboxMapHandle {
   showWorldView: (options?: { duration?: number; padding?: number }) => void;
   setMarker: (location: MapLocation) => void;
   clearMarker: () => void;
+  fitBounds: (
+    bounds: [[number, number], [number, number]],
+    options?: { padding?: number; duration?: number }
+  ) => void;
 }
 
 interface MapboxMapProps {
@@ -467,6 +471,15 @@ const MapboxMap = forwardRef<MapboxMapHandle, MapboxMapProps>(
       clearMarker() {
         runOrQueue(() => {
           hideMarker();
+        });
+      },
+      fitBounds(bounds, options) {
+        runOrQueue(() => {
+          mapRef.current?.fitBounds?.(bounds, {
+            padding: options?.padding ?? 24,
+            duration: options?.duration ?? 1200,
+            essential: true,
+          });
         });
       },
     }));
