@@ -374,7 +374,7 @@ export default function Page() {
           <div>
             <MeteorVisualization
               state={selectedMeteor}
-              step={selectedMeteor.impactLocation ? 5 : 4}
+              step={selectedMeteor.impactLocation ? 4 : 3}
               onLocationSelect={handleLocationSelect}
             />
           </div>
