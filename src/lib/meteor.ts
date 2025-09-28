@@ -3,6 +3,7 @@ export type MeteorState = {
 diameter_m: number; // meters
 velocity_kms: number; // km/s
 angle_deg: number; // degrees from horizontal
+impactLocation?: { x: number; y: number }; // impact location on world map
 };
 
 
@@ -34,7 +35,7 @@ angle_deg: ANGLE.avg,
 };
 
 
-export type WizardStep = 0 | 1 | 2 | 3; // 3 = Review
+export type WizardStep = 0 | 1 | 2 | 3 | 4 | 5; // 3 = Review, 4 = Impact Location, 5 = Impact Results
 
 
 export function clamp(n: number, min: number, max: number) {
