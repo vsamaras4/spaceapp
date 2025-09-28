@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import CustomMeteorWizard from "@/components/custom-meteor/CustomMeteorWizard";
 import { MeteorVisualization } from "@/components/custom-meteor/MeteorVisualization";
-import { DEFAULT_STATE, type MeteorState } from "@/lib/meteor";
+import { ANGLE, DIAMETER, VELOCITY, clamp, type MeteorState } from "@/lib/meteor";
 
 type AppView = "home" | "existing" | "custom" | "analysis";
 
@@ -56,6 +57,47 @@ export default function Page() {
   const [currentView, setCurrentView] = useState<AppView>("home");
   const [selectedMeteor, setSelectedMeteor] = useState<MeteorState | null>(null);
   const [previousView, setPreviousView] = useState<AppView>("home");
+
+  const updateMeteor = (updater: (prev: MeteorState) => MeteorState) => {
+    setSelectedMeteor((prev) => {
+      if (!prev) return prev;
+      return updater(prev);
+    });
+  };
+
+  const handleDiameterChange = (value: string) => {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return;
+    updateMeteor((prev) => ({
+      ...prev,
+      diameter_m: clamp(parsed, DIAMETER.min, DIAMETER.max)
+    }));
+  };
+
+  const handleVelocityChange = (value: string) => {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return;
+    updateMeteor((prev) => ({
+      ...prev,
+      velocity_kms: clamp(parsed, VELOCITY.min, VELOCITY.max)
+    }));
+  };
+
+  const handleAngleChange = (value: string) => {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return;
+    updateMeteor((prev) => ({
+      ...prev,
+      angle_deg: clamp(parsed, ANGLE.min, ANGLE.max)
+    }));
+  };
+
+  const handleLocationSelect = (x: number, y: number) => {
+    updateMeteor((prev) => ({
+      ...prev,
+      impactLocation: { x, y }
+    }));
+  };
 
   const handleExistingMeteorSelect = (meteor: typeof EXISTING_METEORS[0]) => {
     setSelectedMeteor({
@@ -237,6 +279,10 @@ export default function Page() {
 
   // Analysis View
   if (currentView === "analysis" && selectedMeteor) {
+    const locationLabel = selectedMeteor.impactLocation
+      ? `(${Math.round(selectedMeteor.impactLocation.x)}, ${Math.round(selectedMeteor.impactLocation.y)})`
+      : "Not selected";
+
     return (
       <main className="container mx-auto max-w-6xl p-6">
         <div className="mb-6">
@@ -247,7 +293,7 @@ export default function Page() {
             <h1 className="text-2xl font-bold">Meteor Impact Analysis</h1>
           </div>
           <p className="text-muted-foreground">
-            Analyzing your meteor's potential impact...
+            Adjust your meteor parameters or refine the impact site, then review the analysis details.
           </p>
         </div>
 
@@ -255,23 +301,55 @@ export default function Page() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Meteor Parameters</CardTitle>
+                <CardTitle>Impact Summary</CardTitle>
+                <CardDescription>Match the wizard&apos;s final step with quick adjustments.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Diameter:</span>
-                    <span className="font-medium">{selectedMeteor.diameter_m}m</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Velocity:</span>
-                    <span className="font-medium">{selectedMeteor.velocity_kms} km/s</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Impact Angle:</span>
-                    <span className="font-medium">{selectedMeteor.angle_deg}°</span>
-                  </div>
+                <div className="grid gap-3">
+                  <SummaryRow label="Impact Location">
+                    <span className="font-medium">{locationLabel}</span>
+                  </SummaryRow>
+                  <SummaryRow label="Meteor Diameter">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={selectedMeteor.diameter_m}
+                      onChange={(event) => handleDiameterChange(event.target.value)}
+                      className="w-28 text-right"
+                      min={DIAMETER.min}
+                      max={DIAMETER.max}
+                    />
+                    <span className="text-muted-foreground">m</span>
+                  </SummaryRow>
+                  <SummaryRow label="Impact Velocity">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      value={selectedMeteor.velocity_kms}
+                      onChange={(event) => handleVelocityChange(event.target.value)}
+                      className="w-28 text-right"
+                      min={VELOCITY.min}
+                      max={VELOCITY.max}
+                      step={0.1}
+                    />
+                    <span className="text-muted-foreground">km/s</span>
+                  </SummaryRow>
+                  <SummaryRow label="Impact Angle">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      value={selectedMeteor.angle_deg}
+                      onChange={(event) => handleAngleChange(event.target.value)}
+                      className="w-28 text-right"
+                      min={ANGLE.min}
+                      max={ANGLE.max}
+                    />
+                    <span className="text-muted-foreground">°</span>
+                  </SummaryRow>
                 </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Tip: Click the map to adjust the impact location. Parameters update the visualization immediately.
+                </p>
               </CardContent>
             </Card>
 
@@ -281,8 +359,8 @@ export default function Page() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  This is where your Impact & Info analysis would go. 
-                  The meteor visualization shows your configured parameters.
+                  This is where your Impact &amp; Info analysis would go. The meteor visualization shows your configured
+                  parameters and selected impact point.
                 </p>
                 <div className="mt-4">
                   <Button onClick={goHome} className="w-full">
@@ -292,9 +370,13 @@ export default function Page() {
               </CardContent>
             </Card>
           </div>
-          
+
           <div>
-            <MeteorVisualization state={selectedMeteor} step={3} />
+            <MeteorVisualization
+              state={selectedMeteor}
+              step={4}
+              onLocationSelect={handleLocationSelect}
+            />
           </div>
         </div>
       </main>
@@ -302,4 +384,13 @@ export default function Page() {
   }
 
   return null;
+}
+
+function SummaryRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-2">{children}</div>
+    </div>
+  );
 }
