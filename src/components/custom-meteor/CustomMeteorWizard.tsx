@@ -104,9 +104,23 @@ function DiameterStep({ state, setState }: { state: MeteorState; setState: (stat
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted-foreground">
-        Set the **diameter** of your meteor in meters (m). Larger meteors create more dramatic impacts.
-      </p>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Set the **diameter** of your meteor in meters (m). Larger meteors create more dramatic impacts.
+        </p>
+        <div className="rounded-lg bg-blue-50 p-4 text-sm">
+          <h4 className="font-semibold text-blue-900 mb-2">📏 Educational: Diameter & Mass Scaling</h4>
+          <p className="text-blue-800 mb-2">
+            The diameter determines the volume and mass of the meteor for a given density. Mass scales with the cube of the radius:
+          </p>
+          <p className="text-blue-700 font-mono text-xs mb-2">
+            m = (4/3)π(d/2)³ρ
+          </p>
+          <p className="text-blue-800">
+            <strong>Key insight:</strong> Even a tiny meteor can release enormous energy due to cubic scaling. A meteor only twice as wide releases about 8 times more energy if velocity and density are the same.
+          </p>
+        </div>
+      </div>
       <div className="space-y-3">
         <Label htmlFor="diameter">Diameter (m)</Label>
         <div className="flex items-center gap-3">
@@ -146,9 +160,23 @@ function VelocityStep({ state, setState }: { state: MeteorState; setState: (stat
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted-foreground">
-        Set the **velocity** of your meteor in km/s. Higher velocities create more energetic impacts.
-      </p>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Set the **velocity** of your meteor in km/s. Higher velocities create more energetic impacts.
+        </p>
+        <div className="rounded-lg bg-green-50 p-4 text-sm">
+          <h4 className="font-semibold text-green-900 mb-2">🚀 Educational: Velocity & Kinetic Energy</h4>
+          <p className="text-green-800 mb-2">
+            Velocity is the speed of the meteor relative to Earth, not just its absolute speed in space. Impact energy scales as the square of velocity:
+          </p>
+          <p className="text-green-700 font-mono text-xs mb-2">
+            E = (1/2)mv²
+          </p>
+          <p className="text-green-800">
+            <strong>Key insight:</strong> A fast-moving small meteor can sometimes release more energy than a slow-moving much larger one. The relative velocity is critical—approaching Earth head-on vs catching up from behind makes a big difference.
+          </p>
+        </div>
+      </div>
       <div className="space-y-3">
         <Label htmlFor="velocity">Velocity (km/s)</Label>
         <div className="flex items-center gap-3">
@@ -188,9 +216,24 @@ function AngleStep({ state, setState }: { state: MeteorState; setState: (state: 
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted-foreground">
-        Set the **impact angle** (degrees from horizontal). 90° is vertical, smaller values are more grazing entries.
-      </p>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Set the **impact angle** (degrees from horizontal). 90° is vertical, smaller values are more grazing entries.
+        </p>
+        <div className="rounded-lg bg-orange-50 p-4 text-sm">
+          <h4 className="font-semibold text-orange-900 mb-2">📐 Educational: Impact Angle & Crater Formation</h4>
+          <p className="text-orange-800 mb-2">
+            The angle is measured from the horizontal surface of Earth. Different angles produce different crater shapes and energy distribution:
+          </p>
+          <ul className="text-orange-800 text-xs space-y-1 ml-4">
+            <li>• <strong>Vertical impacts (near 90°):</strong> Produce deep, circular craters and concentrate energy downward</li>
+            <li>• <strong>Shallow impacts (small angles):</strong> Spread energy over a larger area and produce elongated craters</li>
+          </ul>
+          <p className="text-orange-800 mt-2">
+            <strong>Key insight:</strong> Most meteors strike Earth at ~45° on average, which is statistically the most probable angle and also produces the largest craters for a given energy.
+          </p>
+        </div>
+      </div>
       <div className="space-y-3">
         <Label htmlFor="angle">Angle (°)</Label>
         <div className="flex items-center gap-3">
@@ -230,9 +273,25 @@ function DensityStep({ state, setState }: { state: MeteorState; setState: (state
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted-foreground">
-        Set the **density** of your meteor in kg/m³. Higher density meteors (like iron) create more energetic impacts.
-      </p>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Set the **density** of your meteor in kg/m³. Higher density meteors (like iron) create more energetic impacts.
+        </p>
+        <div className="rounded-lg bg-purple-50 p-4 text-sm">
+          <h4 className="font-semibold text-purple-900 mb-2">⚗️ Educational: Meteor Composition & Density</h4>
+          <p className="text-purple-800 mb-2">
+            Density depends on composition and directly affects mass for a given diameter:
+          </p>
+          <ul className="text-purple-800 text-xs space-y-1 ml-4">
+            <li>• <strong>Ice or cometary material:</strong> 300–1000 kg/m³</li>
+            <li>• <strong>Rock/ordinary chondrite:</strong> 3000–3500 kg/m³</li>
+            <li>• <strong>Iron meteorites:</strong> 7000–8000 kg/m³</li>
+          </ul>
+          <p className="text-purple-800 mt-2">
+            <strong>Key insight:</strong> A small dense iron meteor can punch a bigger hole than a much larger icy meteor because of the mass difference. Higher density means more mass for the same diameter, which directly increases kinetic energy.
+          </p>
+        </div>
+      </div>
       <div className="space-y-3">
         <Label htmlFor="density">Density (kg/m³)</Label>
         <div className="flex items-center gap-3">
