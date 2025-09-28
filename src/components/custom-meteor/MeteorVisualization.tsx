@@ -378,7 +378,7 @@ export function MeteorVisualization({
         id: "noise",
         radiusKm: results.noiseDamageRadius,
         color: "#38bdf8",
-        label: `Severe Noise (~${results.noiseDamageRadius.toFixed(1)} km radius)`,
+        label: `Noise (~${results.noiseDamageRadius.toFixed(1)} km radius)`,
       },
     ].filter((ring) => isFinite(ring.radiusKm) && ring.radiusKm > 0);
   }, [
