@@ -25,6 +25,13 @@ type MarkerInstance = any;
 
 export type MapLocation = { lng: number; lat: number };
 
+export type ImpactRing = {
+  id: string;
+  radiusKm: number;
+  color?: string;
+  label?: string;
+};
+
 export interface MapboxMapHandle {
   flyTo: (
     location: MapLocation,
@@ -42,6 +49,7 @@ interface MapboxMapProps {
   mapStyle?: string;
   accessToken?: string;
   onReady?: () => void;
+  impactRings?: ImpactRing[] | undefined;
 }
 
 declare global {
@@ -60,6 +68,89 @@ const ensureMapboxStyles = () => {
   link.href = href;
   document.head.appendChild(link);
 };
+
+type GeoJSONPolygon = {
+  type: "Polygon";
+  coordinates: number[][][];
+};
+
+type GeoJSONFeature = {
+  type: "Feature";
+  geometry: GeoJSONPolygon;
+  properties: Record<string, unknown>;
+};
+
+type GeoJSONFeatureCollection = {
+  type: "FeatureCollection";
+  features: GeoJSONFeature[];
+};
+
+const EARTH_RADIUS_KM = 6371;
+const RING_SOURCE_ID = "impact-rings";
+const RING_FILL_LAYER_ID = "impact-rings-fill";
+const RING_OUTLINE_LAYER_ID = "impact-rings-outline";
+const RING_LABEL_LAYER_ID = "impact-rings-label";
+
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+const toDegrees = (radians: number) => (radians * 180) / Math.PI;
+
+const createCirclePolygon = (
+  center: MapLocation,
+  radiusKm: number,
+  steps = 128
+): GeoJSONPolygon => {
+  const coordinates: number[][] = [];
+  const radiusRad = Math.max(0, radiusKm) / EARTH_RADIUS_KM;
+  const latRad = toRadians(center.lat);
+  const lngRad = toRadians(center.lng);
+
+  for (let i = 0; i <= steps; i += 1) {
+    const bearing = (i / steps) * 2 * Math.PI;
+    const sinLat =
+      Math.sin(latRad) * Math.cos(radiusRad) +
+      Math.cos(latRad) * Math.sin(radiusRad) * Math.cos(bearing);
+    const lat = Math.asin(Math.min(1, Math.max(-1, sinLat)));
+    const lng =
+      lngRad +
+      Math.atan2(
+        Math.sin(bearing) * Math.sin(radiusRad) * Math.cos(latRad),
+        Math.cos(radiusRad) - Math.sin(latRad) * Math.sin(lat)
+      );
+
+    coordinates.push([toDegrees(lng), toDegrees(lat)]);
+  }
+
+  return {
+    type: "Polygon",
+    coordinates: [coordinates],
+  };
+};
+
+const buildImpactRingCollection = (
+  center: MapLocation,
+  rings: ImpactRing[]
+): GeoJSONFeatureCollection => {
+  const sorted = [...rings].sort((a, b) => b.radiusKm - a.radiusKm);
+
+  return {
+    type: "FeatureCollection",
+    features: sorted.map<GeoJSONFeature>((ring) => ({
+      type: "Feature",
+      geometry: createCirclePolygon(center, ring.radiusKm),
+      properties: {
+        id: ring.id,
+        color: ring.color,
+        label: ring.label,
+        radiusKm: ring.radiusKm,
+      },
+    })),
+  };
+};
+
+const emptyFeatureCollection = (): GeoJSONFeatureCollection => ({
+  type: "FeatureCollection",
+  features: [],
+});
 
 const loadMapbox = () => {
   if (typeof window === "undefined") {
@@ -104,6 +195,7 @@ const MapboxMap = forwardRef<MapboxMapHandle, MapboxMapProps>(
     mapStyle = MAPBOX_STYLE_DARK,
     accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
     onReady,
+    impactRings,
   }, ref) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<MapInstance | null>(null);
@@ -158,6 +250,64 @@ const MapboxMap = forwardRef<MapboxMapHandle, MapboxMapProps>(
       const el = markerRef.current?.getElement?.();
       if (el) {
         el.style.display = "none";
+      }
+    };
+
+    const ensureImpactLayers = () => {
+      if (!mapRef.current) return;
+      const map = mapRef.current;
+
+      if (!map.getSource?.(RING_SOURCE_ID)) {
+        map.addSource?.(RING_SOURCE_ID, {
+          type: "geojson",
+          data: emptyFeatureCollection(),
+        });
+      }
+
+      if (!map.getLayer?.(RING_FILL_LAYER_ID)) {
+        map.addLayer?.({
+          id: RING_FILL_LAYER_ID,
+          type: "fill",
+          source: RING_SOURCE_ID,
+          layout: {},
+          paint: {
+            "fill-color": ["coalesce", ["get", "color"], "#f97316"],
+            "fill-opacity": 0.18,
+          },
+        });
+      }
+
+      if (!map.getLayer?.(RING_OUTLINE_LAYER_ID)) {
+        map.addLayer?.({
+          id: RING_OUTLINE_LAYER_ID,
+          type: "line",
+          source: RING_SOURCE_ID,
+          layout: {},
+          paint: {
+            "line-color": ["coalesce", ["get", "color"], "#f97316"],
+            "line-width": 2,
+            "line-opacity": 0.8,
+          },
+        });
+      }
+
+      if (!map.getLayer?.(RING_LABEL_LAYER_ID)) {
+        map.addLayer?.({
+          id: RING_LABEL_LAYER_ID,
+          type: "symbol",
+          source: RING_SOURCE_ID,
+          layout: {
+            "text-field": ["coalesce", ["get", "label"], ""],
+            "text-size": 14,
+            "text-offset": [0, 1.1],
+            "text-anchor": "top",
+          },
+          paint: {
+            "text-color": ["coalesce", ["get", "color"], "#ffffff"],
+            "text-halo-color": "rgba(0,0,0,0.7)",
+            "text-halo-width": 1.2,
+          },
+        });
       }
     };
 
@@ -260,6 +410,20 @@ const MapboxMap = forwardRef<MapboxMapHandle, MapboxMapProps>(
         }
       });
     }, [selectedLocation]);
+
+    useEffect(() => {
+      runOrQueue(() => {
+        if (!impactRings || !impactRings.length || !selectedLocation) {
+          const source = mapRef.current?.getSource?.(RING_SOURCE_ID);
+          source?.setData?.(emptyFeatureCollection());
+          return;
+        }
+
+        ensureImpactLayers();
+        const source = mapRef.current?.getSource?.(RING_SOURCE_ID);
+        source?.setData?.(buildImpactRingCollection(selectedLocation, impactRings));
+      });
+    }, [impactRings, selectedLocation]);
 
     useImperativeHandle(ref, () => ({
       flyTo(location, options) {
