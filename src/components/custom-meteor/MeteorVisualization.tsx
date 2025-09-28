@@ -10,6 +10,60 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import MapboxMap, { type MapboxMapHandle } from "../map/MapboxMap";
 
+const EARTH_RADIUS_KM = 6371;
+
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+const toDegrees = (radians: number) => (radians * 180) / Math.PI;
+const wrapLng = (lng: number) => ((lng + 540) % 360) - 180;
+
+const circleBounds = (
+  center: { lat: number; lng: number },
+  radiusKm: number,
+  steps = 128
+): [[number, number], [number, number]] | null => {
+  if (!Number.isFinite(radiusKm) || radiusKm <= 0) return null;
+
+  let minLat = Infinity;
+  let minLng = Infinity;
+  let maxLat = -Infinity;
+  let maxLng = -Infinity;
+
+  const radiusRad = radiusKm / EARTH_RADIUS_KM;
+  const latRad = toRadians(center.lat);
+  const lngRad = toRadians(center.lng);
+
+  for (let i = 0; i <= steps; i += 1) {
+    const bearing = (i / steps) * 2 * Math.PI;
+    const sinLat =
+      Math.sin(latRad) * Math.cos(radiusRad) +
+      Math.cos(latRad) * Math.sin(radiusRad) * Math.cos(bearing);
+    const lat = Math.asin(Math.min(1, Math.max(-1, sinLat)));
+    const lng =
+      lngRad +
+      Math.atan2(
+        Math.sin(bearing) * Math.sin(radiusRad) * Math.cos(latRad),
+        Math.cos(radiusRad) - Math.sin(latRad) * Math.sin(lat)
+      );
+
+    const latDeg = toDegrees(lat);
+    const lngDeg = wrapLng(toDegrees(lng));
+
+    minLat = Math.min(minLat, latDeg);
+    minLng = Math.min(minLng, lngDeg);
+    maxLat = Math.max(maxLat, latDeg);
+    maxLng = Math.max(maxLng, lngDeg);
+  }
+
+  if (!Number.isFinite(minLat) || !Number.isFinite(minLng) || !Number.isFinite(maxLat) || !Number.isFinite(maxLng)) {
+    return null;
+  }
+
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
+};
+
 interface MeteorVisualizationProps {
   state: MeteorState;
   step: WizardStep;
@@ -337,6 +391,11 @@ export function MeteorVisualization({
     state.impactLocation?.lng,
   ]);
 
+  const largestImpactRingKm = useMemo(() => {
+    if (!impactRings || !impactRings.length) return 0;
+    return impactRings.reduce((max, ring) => Math.max(max, ring.radiusKm), 0);
+  }, [impactRings]);
+
   // --- Reference objects (real-world linear spans in meters; ≤ 10,000 m) ---
   const referenceObjects = [
     { name: "Car", size: 4.6, icon: "🚗", color: "#3b82f6" },
@@ -381,6 +440,7 @@ export function MeteorVisualization({
   const stageRef = useRef<HTMLDivElement>(null!);
   const mapRef = useRef<MapboxMapHandle | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const locationAnimationKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!showWorldMap) {
@@ -393,14 +453,62 @@ export function MeteorVisualization({
     const map = mapRef.current;
     if (!map) return;
 
-    if (state.impactLocation) {
-      map.setMarker(state.impactLocation);
-      map.flyTo(state.impactLocation, { zoom: 4 });
-    } else {
+    if (!state.impactLocation) {
+      locationAnimationKeyRef.current = null;
       map.clearMarker();
-      map.showWorldView();
+      map.showWorldView({ duration: 1000, padding: 48 });
+      return;
     }
-  }, [showWorldMap, mapReady, state.impactLocation]);
+
+    map.setMarker(state.impactLocation);
+
+    const largestRing = largestImpactRingKm;
+    const animationKey = `${state.impactLocation.lat.toFixed(3)},${state.impactLocation.lng.toFixed(3)}:${largestRing.toFixed(2)}:${step}:${showImpactEffects}`;
+    const shouldAnimateFromOrbit =
+      (step === 5 || showImpactEffects) && largestRing > 0 && locationAnimationKeyRef.current !== animationKey;
+
+    if (shouldAnimateFromOrbit) {
+      locationAnimationKeyRef.current = animationKey;
+
+      map.showWorldView({ duration: 0, padding: 64 });
+
+      const bounds = circleBounds(state.impactLocation, largestRing);
+      const animate = () => {
+        if (bounds) {
+          map.fitBounds(bounds, { padding: 72, duration: 2000 });
+        } else {
+          map.flyTo(state.impactLocation, { zoom: 4, duration: 1600 });
+        }
+      };
+
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          window.setTimeout(animate, 120);
+        });
+      } else {
+        animate();
+      }
+
+      return;
+    }
+
+    if (largestRing > 0) {
+      const bounds = circleBounds(state.impactLocation, largestRing);
+      if (bounds) {
+        map.fitBounds(bounds, { padding: 64, duration: 1200 });
+        return;
+      }
+    }
+
+    map.flyTo(state.impactLocation, { zoom: 4 });
+  }, [
+    showWorldMap,
+    mapReady,
+    state.impactLocation,
+    largestImpactRingKm,
+    step,
+    showImpactEffects,
+  ]);
 
   // ---- Speed gauge values
   const MIN_V = 12;
