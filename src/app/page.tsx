@@ -20,7 +20,8 @@ const EXISTING_METEORS = [
     density: 3000,
     description: "The asteroid that caused the Cretaceous-Paleogene extinction event, wiping out the dinosaurs.",
     impactYear: "66 million years ago",
-    location: "Yucatán Peninsula, Mexico"
+    location: "Yucatán Peninsula, Mexico",
+    coords: { lat: 21.4, lng: -89.5 }
   },
   {
     id: "tunguska",
@@ -31,7 +32,8 @@ const EXISTING_METEORS = [
     density: 1000,
     description: "A massive explosion over Siberia that flattened 2,000 square kilometers of forest.",
     impactYear: "1908",
-    location: "Tunguska, Siberia"
+    location: "Tunguska, Siberia",
+    coords: { lat: 60.9, lng: 101.9 }
   },
   {
     id: "chelyabinsk",
@@ -42,7 +44,8 @@ const EXISTING_METEORS = [
     density: 3000,
     description: "A superbolide that exploded over Russia, injuring over 1,000 people.",
     impactYear: "2013",
-    location: "Chelyabinsk, Russia"
+    location: "Chelyabinsk, Russia",
+    coords: { lat: 55.16, lng: 61.40 }
   },
   {
     id: "barringer",
@@ -53,7 +56,8 @@ const EXISTING_METEORS = [
     density: 8000,
     description: "A well-preserved meteor crater in Arizona, created by an iron meteorite.",
     impactYear: "50,000 years ago",
-    location: "Arizona, USA"
+    location: "Arizona, USA",
+    coords: { lat: 35.027, lng: -111.022 }
   }
 ];
 
@@ -117,7 +121,8 @@ export default function Page() {
       diameter_m: meteor.diameter,
       velocity_kms: meteor.velocity,
       angle_deg: meteor.angle,
-      density_kgm3: meteor.density
+      density_kgm3: meteor.density,
+      impactLocation: meteor.coords
     });
     setPreviousView("existing");
     setCurrentView("analysis");
