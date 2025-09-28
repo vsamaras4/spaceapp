@@ -22,7 +22,8 @@ import {
   type MeteorState,
   type WizardStep,
   type ImpactInputs,
-  calculateImpact
+  calculateImpact,
+  formatScientificWithLabel
 } from "@/lib/meteor";
 
 interface CustomMeteorWizardProps {
@@ -417,17 +418,17 @@ export function ImpactResultsStep({ state }: { state: MeteorState }) {
             <CardContent className="space-y-2">
               <ReviewRow
                 label="Mass"
-                value={`${results.mass.toExponential(2)} kg`}
+                value={`${formatScientificWithLabel(results.mass)} kg`}
                 help="Total mass of the meteor from diameter and density: m = (4/3)·π·(d/2)^3·ρ."
               />
               <ReviewRow
                 label="Kinetic Energy"
-                value={`${results.kineticEnergy.toExponential(2)} J`}
+                value={`${formatScientificWithLabel(results.kineticEnergy)} J`}
                 help="Energy on impact: E = ½·m·v². Main driver of destructive effects."
               />
               <ReviewRow
                 label="TNT Equivalent"
-                value={`${results.energyTNT.toExponential(2)} tons TNT`}
+                value={`${formatScientificWithLabel(results.energyTNT)} tons TNT`}
                 help="Energy expressed as the mass of TNT that would release a similar amount of energy."
               />
               <ReviewRow

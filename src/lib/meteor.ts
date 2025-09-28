@@ -80,6 +80,35 @@ export function round(n: number, places = 0) {
   return Math.round(n * p) / p;
 }
 
+export function formatScientificWithLabel(n: number, digits = 2) {
+  if (!isFinite(n)) return "—";
+
+  const scientific = n.toExponential(digits);
+  const absValue = Math.abs(n);
+
+  const scales = [
+    { value: 1e21, label: "sextillion" },
+    { value: 1e18, label: "quintillion" },
+    { value: 1e15, label: "quadrillion" },
+    { value: 1e12, label: "trillion" },
+    { value: 1e9, label: "billion" },
+    { value: 1e6, label: "million" },
+  ];
+
+  for (const { value, label } of scales) {
+    if (absValue >= value) {
+      const scaled = n / value;
+      const formatted = new Intl.NumberFormat(undefined, {
+        maximumFractionDigits: scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2,
+      }).format(scaled);
+
+      return `${scientific} (${formatted} ${label})`;
+    }
+  }
+
+  return scientific;
+}
+
 /**
  * Ozone depletion estimator (percent), input in **megaton (Mt)** TNT equivalent.
  * Smooth monotonic scaling that saturates at ~50% for extreme Chicxulub-class events.
