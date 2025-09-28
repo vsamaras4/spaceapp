@@ -350,7 +350,7 @@ function ImpactLocationStep() {
   );
 }
 
-function ImpactResultsStep({ state }: { state: MeteorState }) {
+export function ImpactResultsStep({ state }: { state: MeteorState }) {
   const impactInputs: ImpactInputs = {
     diameter: state.diameter_m,
     density: state.density_kgm3,
