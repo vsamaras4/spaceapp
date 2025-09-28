@@ -484,7 +484,12 @@ export function MeteorVisualization({ state, step, className }: MeteorVisualizat
             </g>
 
             {/* Direction nib (only when angle step is active) */}
-            {showAngle && <polygon points={`${r + 8},0 ${r - 8},8 ${r - 8},-8`} className="fill-primary-foreground" />}
+            {showAngle && (
+              <polygon
+                points={`${r + 8},0 ${r - 8},8 ${r - 8},-8`}
+                className={cn(step >= 2 ? "fill-yellow-400" : "fill-primary-foreground")}
+              />
+            )}
           </g>
 
           {/* Angle label (only when angle step is active) */}
