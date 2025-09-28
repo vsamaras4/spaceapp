@@ -487,7 +487,7 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
 
           {/* Approach group (rotates when angle is active) */}
           <g 
-            className="transition-all duration-1000 ease-in-out"
+            className="transition-all duration-250 ease-in-out"
             transform={
               step >= 4
                 ? `translate(200,500) rotate(${180 - angle}) scale(4)` 
@@ -560,7 +560,7 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
           )}
         </svg>
 
-        {/* ⬇️ Speed Gauge (shadcn) — always visible, bottom center */}
+        {/* Speed Gauge (shadcn) — always visible, bottom center */}
         {step === 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
             <Card className="pointer-events-auto bg-background/70 backdrop-blur border-white/10 shadow-lg w-[280px]">
