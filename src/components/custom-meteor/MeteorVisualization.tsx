@@ -263,6 +263,7 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
   const tailLen = Math.max(20, Math.min(100, state.velocity_kms * 2));     // tail length
   const angle = state.angle_deg;
 
+  const showMeteor = step >= 0 && step < 3;
   const showTail = step >= 1 && step < 3;
   const showAngle = step >= 2 && step < 3;
   const showWorldMap = step >= 3;
@@ -363,20 +364,21 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
         />
 
         {/* SVG content on top */}
-        <svg
-          viewBox="0 0 400 400"
-          className={cn(
-            "absolute inset-0 h-full w-full z-10",
-            showWorldMap ? "pointer-events-none" : "pointer-events-auto"
-          )}
-        >
-          {/* Ground only when angle step is active to avoid previewing future info */}
-          {showAngle && step < 4 && (
-            <g>
-              <rect x="0" y="330" width="400" height="70" className="fill-secondary" />
-              <text x="12" y="355" className="fill-muted-foreground text-[12px]">Ground</text>
-            </g>
-          )}
+        {showMeteor && (
+          <svg
+            viewBox="0 0 400 400"
+            className={cn(
+              "absolute inset-0 h-full w-full z-10",
+              showWorldMap ? "pointer-events-none" : "pointer-events-auto"
+            )}
+          >
+            {/* Ground only when angle step is active to avoid previewing future info */}
+            {showAngle && step < 4 && (
+              <g>
+                <rect x="0" y="330" width="400" height="70" className="fill-secondary" />
+                <text x="12" y="355" className="fill-muted-foreground text-[12px]">Ground</text>
+              </g>
+            )}
 
           {/* Moving Scale - shows when diameter step is active */}
           {step === 0 && (
@@ -556,9 +558,10 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
             </g>
           )}
 
-        </svg>
+  </svg>
+  )}
 
-        {/* ⬇️ Speed Gauge (shadcn) — always visible, bottom center */}
+  {/* ⬇️ Speed Gauge (shadcn) — always visible, bottom center */}
         {step === 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
             <Card className="pointer-events-auto bg-background/70 backdrop-blur border-white/10 shadow-lg w-[280px]">
