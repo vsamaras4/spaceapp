@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm run build              # writes static site to ./out
       - run: touch out/.nojekyll        # ensure _next is served on Pages
       - uses: actions/upload-pages-artifact@v3
