@@ -500,6 +500,7 @@ export default function Page() {
               state={selectedMeteor}
               step={4}
               onLocationSelect={handleLocationSelect}
+              showImpactEffects
             />
           </div>
         </div>

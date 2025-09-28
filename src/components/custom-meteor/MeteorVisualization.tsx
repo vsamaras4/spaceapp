@@ -2,8 +2,9 @@
 
 // components/custom-meteor/MeteorVisualization.tsx
 import { cn } from "@/lib/utils";
-import type { MeteorState, WizardStep } from "@/lib/meteor";
-import { useEffect, useRef, useState } from "react";
+import type { ImpactInputs, MeteorState, WizardStep } from "@/lib/meteor";
+import { calculateImpact } from "@/lib/meteor";
+import { useEffect, useMemo, useRef, useState } from "react";
 // ⬇️ shadcn/ui imports
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -14,6 +15,12 @@ interface MeteorVisualizationProps {
   step: WizardStep;
   className?: string;
   onLocationSelect?: (lng: number, lat: number) => void;
+  /**
+   * Force the impact-effect overlays (damage/burn radii) to appear even if the
+   * wizard step is not at the final screen. Used by the standalone Impact
+   * Analysis view which reuses this visualization outside of the wizard flow.
+   */
+  showImpactEffects?: boolean;
 }
 
 function CanvasStars({
@@ -257,7 +264,13 @@ function CanvasStars({
   return null;
 }
 
-export function MeteorVisualization({ state, step, className, onLocationSelect }: MeteorVisualizationProps) {
+export function MeteorVisualization({
+  state,
+  step,
+  className,
+  onLocationSelect,
+  showImpactEffects = false,
+}: MeteorVisualizationProps) {
   // --- Visual scalars (independent of the reference scale logic) ---
   const r = Math.max(10, Math.min(100, state.diameter_m / 100));          // meteor radius
   const tailLen = Math.max(20, Math.min(100, state.velocity_kms * 2));     // tail length
@@ -266,7 +279,63 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
   const showMeteor = step >= 0 && step < 3;
   const showTail = step >= 1 && step < 3;
   const showAngle = step >= 2 && step < 3;
-  const showWorldMap = step >= 4;
+  const showWorldMap = step >= 4 || showImpactEffects;
+  const shouldShowImpactEffects =
+    showWorldMap && (showImpactEffects || step >= 6) && state.impactLocation;
+
+  const impactRings = useMemo(() => {
+    if (!shouldShowImpactEffects || !state.impactLocation) return undefined;
+
+    const inputs: ImpactInputs = {
+      diameter: state.diameter_m,
+      density: state.density_kgm3,
+      velocity: state.velocity_kms * 1000,
+      angle: state.angle_deg,
+    };
+
+    const results = calculateImpact(inputs);
+
+    return [
+      {
+        id: "crater",
+        radiusKm: Math.max(0, results.craterDiameter / 2),
+        color: "#f97316",
+        label: `Crater (~${results.craterDiameter.toFixed(1)} km wide)`,
+      },
+      {
+        id: "severe",
+        radiusKm: results.severeDamageRadius,
+        color: "#ef4444",
+        label: `Severe Damage (~${results.severeDamageRadius.toFixed(1)} km radius)`,
+      },
+      {
+        id: "burn3",
+        radiusKm: results.thirdDegreeBurnRadius,
+        color: "#f97316",
+        label: `3rd Degree Burns (~${results.thirdDegreeBurnRadius.toFixed(1)} km radius)`,
+      },
+      {
+        id: "burn2",
+        radiusKm: results.secondDegreeBurnRadius,
+        color: "#fde047",
+        label: `2nd Degree Burns (~${results.secondDegreeBurnRadius.toFixed(1)} km radius)`,
+      },
+      {
+        id: "noise",
+        radiusKm: results.noiseDamageRadius,
+        color: "#38bdf8",
+        label: `Severe Noise (~${results.noiseDamageRadius.toFixed(1)} km radius)`,
+      },
+    ].filter((ring) => isFinite(ring.radiusKm) && ring.radiusKm > 0);
+  }, [
+    shouldShowImpactEffects,
+    state.angle_deg,
+    state.density_kgm3,
+    state.diameter_m,
+    state.velocity_kms,
+    state.impactLocation?.lat,
+    state.impactLocation?.lng,
+  ]);
 
   // --- Reference objects (real-world linear spans in meters; ≤ 10,000 m) ---
   const referenceObjects = [
@@ -353,6 +422,7 @@ export function MeteorVisualization({ state, step, className, onLocationSelect }
             selectedLocation={state.impactLocation}
             onReady={() => setMapReady(true)}
             onSelect={(lng, lat) => onLocationSelect?.(lng, lat)}
+            impactRings={impactRings}
           />
         )}
 
