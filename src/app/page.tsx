@@ -76,35 +76,25 @@ const HISTORICAL_METEORS: MeteorOption[] = [
 
 const NEAR_EARTH_OBJECTS: MeteorOption[] = [
   {
-    id: "apophis",
-    name: "99942 Apophis",
-    diameter: 375,
-    velocity: 30,
-    angle: 35,
+    id: "athanasia",
+    name: "730 Athanasia (A912 GG)",
+    diameter: 4497,
+    velocity: 14,
+    angle: 20,
     density: 3000,
     description:
-      "A near-Earth asteroid that will make a close approach to Earth in 2029, serving as a wake-up call for monitoring programs.",
+      "",
   },
   {
-    id: "bennu",
-    name: "101955 Bennu",
-    diameter: 490,
-    velocity: 28,
-    angle: 40,
-    density: 1190,
+    id: "toro",
+    name: "1685 Toro (1948 OA)",
+    diameter: 3400,
+    velocity: 20,
+    angle: 25,
+    density: 3000,
     description:
-      "Target of the OSIRIS-REx mission and a potentially hazardous asteroid with a small chance of impacting Earth in the late 2100s.",
-  },
-  {
-    id: "swift-tuttle",
-    name: "Comet Swift-Tuttle",
-    diameter: 26000,
-    velocity: 35,
-    angle: 30,
-    density: 600,
-    description:
-      "The parent body of the Perseid meteor shower; its long-period orbit brings it near Earth's path every 133 years.",
-  },
+      "",
+  }  
 ];
 
 export default function Page() {
