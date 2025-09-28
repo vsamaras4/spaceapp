@@ -10,7 +10,20 @@ import { type MeteorState } from "@/lib/meteor";
 
 type AppView = "home" | "existing" | "custom" | "analysis";
 
-const EXISTING_METEORS = [
+type MeteorOption = {
+  id: string;
+  name: string;
+  diameter: number;
+  velocity: number;
+  angle: number;
+  density: number;
+  description: string;
+  impactYear?: string;
+  location?: string;
+  coords?: { lat: number; lng: number };
+};
+
+const HISTORICAL_METEORS: MeteorOption[] = [
   {
     id: "chicxulub",
     name: "Chicxulub Impactor",
@@ -61,6 +74,39 @@ const EXISTING_METEORS = [
   }
 ];
 
+const NEAR_EARTH_OBJECTS: MeteorOption[] = [
+  {
+    id: "apophis",
+    name: "99942 Apophis",
+    diameter: 375,
+    velocity: 30,
+    angle: 35,
+    density: 3000,
+    description:
+      "A near-Earth asteroid that will make a close approach to Earth in 2029, serving as a wake-up call for monitoring programs.",
+  },
+  {
+    id: "bennu",
+    name: "101955 Bennu",
+    diameter: 490,
+    velocity: 28,
+    angle: 40,
+    density: 1190,
+    description:
+      "Target of the OSIRIS-REx mission and a potentially hazardous asteroid with a small chance of impacting Earth in the late 2100s.",
+  },
+  {
+    id: "swift-tuttle",
+    name: "Comet Swift-Tuttle",
+    diameter: 26000,
+    velocity: 35,
+    angle: 30,
+    density: 600,
+    description:
+      "The parent body of the Perseid meteor shower; its long-period orbit brings it near Earth's path every 133 years.",
+  },
+];
+
 export default function Page() {
   const [currentView, setCurrentView] = useState<AppView>("home");
   const [selectedMeteor, setSelectedMeteor] = useState<MeteorState | null>(null);
@@ -81,7 +127,7 @@ export default function Page() {
     }));
   };
 
-  const handleExistingMeteorSelect = (meteor: typeof EXISTING_METEORS[0]) => {
+  const handleExistingMeteorSelect = (meteor: MeteorOption) => {
     setSelectedMeteor({
       diameter_m: meteor.diameter,
       velocity_kms: meteor.velocity,
@@ -136,7 +182,7 @@ export default function Page() {
                 🌟 Existing Meteor
               </CardTitle>
               <CardDescription>
-                Use predefined meteor data from real historical impacts
+                Use predefined meteor data from real historical impacts and monitored near-Earth objects
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -193,56 +239,108 @@ export default function Page() {
             <h1 className="text-2xl font-bold">Choose an Existing Meteor</h1>
           </div>
           <p className="text-muted-foreground">
-            Select from famous historical meteor impacts to see their effects.
+            Explore legendary impacts from Earth's past or experiment with monitored asteroids and comets that astronomers
+            are watching today.
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {EXISTING_METEORS.map((meteor) => (
-            <Card key={meteor.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  ☄️ {meteor.name}
-                </CardTitle>
-                <CardDescription>
-                  {meteor.impactYear} • {meteor.location}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {meteor.description}
-                </p>
-                
-                <div className="grid grid-cols-4 gap-4 mb-4 text-sm">
-                  <div>
-                    <div className="font-medium">Diameter</div>
-                    <div className="text-muted-foreground">{meteor.diameter}m</div>
-                  </div>
-                  <div>
-                    <div className="font-medium">Velocity</div>
-                    <div className="text-muted-foreground">{meteor.velocity} km/s</div>
-                  </div>
-                  <div>
-                    <div className="font-medium">Angle</div>
-                    <div className="text-muted-foreground">{meteor.angle}°</div>
-                  </div>
-                  <div>
-                    <div className="font-medium">Density</div>
-                    <div className="text-muted-foreground">{meteor.density} kg/m³</div>
-                  </div>
-                </div>
+        <section className="space-y-10">
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Historical Impact Events</h2>
+            <div className="grid gap-6 md:grid-cols-2">
+              {HISTORICAL_METEORS.map((meteor) => (
+                <Card key={meteor.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      ☄️ {meteor.name}
+                    </CardTitle>
+                    {(meteor.impactYear || meteor.location) && (
+                      <CardDescription>
+                        {[meteor.impactYear, meteor.location].filter(Boolean).join(" • ")}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {meteor.description}
+                    </p>
 
-                <Button onClick={() => handleExistingMeteorSelect(meteor)} className="w-full">
-                  Analyze This Meteor
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    <div className="grid grid-cols-4 gap-4 mb-4 text-sm">
+                      <div>
+                        <div className="font-medium">Diameter</div>
+                        <div className="text-muted-foreground">{meteor.diameter}m</div>
+                      </div>
+                      <div>
+                        <div className="font-medium">Velocity</div>
+                        <div className="text-muted-foreground">{meteor.velocity} km/s</div>
+                      </div>
+                      <div>
+                        <div className="font-medium">Angle</div>
+                        <div className="text-muted-foreground">{meteor.angle}°</div>
+                      </div>
+                      <div>
+                        <div className="font-medium">Density</div>
+                        <div className="text-muted-foreground">{meteor.density} kg/m³</div>
+                      </div>
+                    </div>
+
+                    <Button onClick={() => handleExistingMeteorSelect(meteor)} className="w-full">
+                      Analyze This Meteor
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Monitored Near-Earth Objects</h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-3xl">
+              These asteroids and comets are currently tracked by planetary defense teams. Diameter and density values are
+              monitored measurements, while velocity and angle are example entry conditions used for modeling.
+            </p>
+            <div className="grid gap-6 md:grid-cols-2">
+              {NEAR_EARTH_OBJECTS.map((object) => (
+                <Card key={object.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      🛰️ {object.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {object.description}
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
+                      <div>
+                        <div className="font-medium">Diameter</div>
+                        <div className="text-muted-foreground">{object.diameter}m</div>
+                      </div>
+                      <div>
+                        <div className="font-medium">Density</div>
+                        <div className="text-muted-foreground">{object.density} kg/m³</div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="font-medium">Example Entry</div>
+                        <div className="text-muted-foreground">Velocity: {object.velocity} km/s</div>
+                        <div className="text-muted-foreground">Angle: {object.angle}°</div>
+                      </div>
+                    </div>
+
+                    <Button onClick={() => handleExistingMeteorSelect(object)} className="w-full">
+                      Analyze This Object
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Each meteor will be analyzed using our Impact & Info system
+            Each selection will be analyzed using our Impact & Info system
           </p>
         </div>
       </main>
