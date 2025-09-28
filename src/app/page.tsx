@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import CustomMeteorWizard from "@/components/custom-meteor/CustomMeteorWizard";
+import { Progress } from "@/components/ui/progress";
+import CustomMeteorWizard, { ImpactResultsStep } from "@/components/custom-meteor/CustomMeteorWizard";
 import { MeteorVisualization } from "@/components/custom-meteor/MeteorVisualization";
-import { ANGLE, DIAMETER, VELOCITY, DENSITY, clamp, type MeteorState, type ImpactInputs, type ImpactResults, calculateImpact, prettyNumber, round } from "@/lib/meteor";
+import { type MeteorState } from "@/lib/meteor";
 
 type AppView = "home" | "existing" | "custom" | "analysis";
 
@@ -65,48 +65,13 @@ export default function Page() {
   const [currentView, setCurrentView] = useState<AppView>("home");
   const [selectedMeteor, setSelectedMeteor] = useState<MeteorState | null>(null);
   const [previousView, setPreviousView] = useState<AppView>("home");
+  const [forceImpactEffects, setForceImpactEffects] = useState(false);
 
   const updateMeteor = (updater: (prev: MeteorState) => MeteorState) => {
     setSelectedMeteor((prev) => {
       if (!prev) return prev;
       return updater(prev);
     });
-  };
-
-  const handleDiameterChange = (value: string) => {
-    const parsed = Number(value);
-    if (Number.isNaN(parsed)) return;
-    updateMeteor((prev) => ({
-      ...prev,
-      diameter_m: clamp(parsed, DIAMETER.min, DIAMETER.max)
-    }));
-  };
-
-  const handleVelocityChange = (value: string) => {
-    const parsed = Number(value);
-    if (Number.isNaN(parsed)) return;
-    updateMeteor((prev) => ({
-      ...prev,
-      velocity_kms: clamp(parsed, VELOCITY.min, VELOCITY.max)
-    }));
-  };
-
-  const handleAngleChange = (value: string) => {
-    const parsed = Number(value);
-    if (Number.isNaN(parsed)) return;
-    updateMeteor((prev) => ({
-      ...prev,
-      angle_deg: clamp(parsed, ANGLE.min, ANGLE.max)
-    }));
-  };
-
-  const handleDensityChange = (value: string) => {
-    const parsed = Number(value);
-    if (Number.isNaN(parsed)) return;
-    updateMeteor((prev) => ({
-      ...prev,
-      density_kgm3: clamp(parsed, DENSITY.min, DENSITY.max)
-    }));
   };
 
   const handleLocationSelect = (lng: number, lat: number) => {
@@ -125,12 +90,14 @@ export default function Page() {
       impactLocation: meteor.coords
     });
     setPreviousView("existing");
+    setForceImpactEffects(true);
     setCurrentView("analysis");
   };
 
   const handleCustomMeteorComplete = (meteor: MeteorState) => {
     setSelectedMeteor(meteor);
     setPreviousView("custom");
+    setForceImpactEffects(false);
     setCurrentView("analysis");
   };
 
@@ -138,10 +105,12 @@ export default function Page() {
     setCurrentView("home");
     setSelectedMeteor(null);
     setPreviousView("home");
+    setForceImpactEffects(false);
   };
 
   const goBack = () => {
     if (currentView === "analysis") {
+      setForceImpactEffects(false);
       setCurrentView(previousView);
     } else if (currentView === "custom") {
       setCurrentView("home");
@@ -302,10 +271,7 @@ export default function Page() {
 
   // Analysis View
   if (currentView === "analysis" && selectedMeteor) {
-    const locationLabel = selectedMeteor.impactLocation
-      ? `${selectedMeteor.impactLocation.lat.toFixed(2)}°, ${selectedMeteor.impactLocation.lng.toFixed(2)}°`
-      : "Not selected";
-
+    const shouldForceImpactEffects = forceImpactEffects && Boolean(selectedMeteor.impactLocation);
     return (
       <main className="container mx-auto max-w-6xl p-6">
         <div className="mb-6">
@@ -313,195 +279,38 @@ export default function Page() {
             <Button variant="outline" onClick={goBack}>
               ← Back
             </Button>
-            <h1 className="text-2xl font-bold">Meteor Impact Analysis</h1>
+            <h1 className="text-2xl font-bold">Meteor Impact Results</h1>
           </div>
           <p className="text-muted-foreground">
-            Adjust your meteor parameters or refine the impact site, then review the analysis details.
+            You&apos;re now viewing the final step of the custom meteor wizard, showcasing the full destruction radii for this impact.
           </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Impact Summary</CardTitle>
-                <CardDescription>Match the wizard&apos;s final step with quick adjustments.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3">
-                  <SummaryRow label="Impact Location">
-                    <span className="font-medium">{locationLabel}</span>
-                  </SummaryRow>
-                  <SummaryRow label="Meteor Diameter">
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      value={selectedMeteor.diameter_m}
-                      onChange={(event) => handleDiameterChange(event.target.value)}
-                      className="w-28 text-right"
-                      min={DIAMETER.min}
-                      max={DIAMETER.max}
-                    />
-                    <span className="text-muted-foreground">m</span>
-                  </SummaryRow>
-                  <SummaryRow label="Impact Velocity">
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      value={selectedMeteor.velocity_kms}
-                      onChange={(event) => handleVelocityChange(event.target.value)}
-                      className="w-28 text-right"
-                      min={VELOCITY.min}
-                      max={VELOCITY.max}
-                      step={0.1}
-                    />
-                    <span className="text-muted-foreground">km/s</span>
-                  </SummaryRow>
-                  <SummaryRow label="Impact Angle">
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      value={selectedMeteor.angle_deg}
-                      onChange={(event) => handleAngleChange(event.target.value)}
-                      className="w-28 text-right"
-                      min={ANGLE.min}
-                      max={ANGLE.max}
-                    />
-                    <span className="text-muted-foreground">°</span>
-                  </SummaryRow>
-                  <SummaryRow label="Density">
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      value={selectedMeteor.density_kgm3}
-                      onChange={(event) => handleDensityChange(event.target.value)}
-                      className="w-28 text-right"
-                      min={DENSITY.min}
-                      max={DENSITY.max}
-                    />
-                    <span className="text-muted-foreground">kg/m³</span>
-                  </SummaryRow>
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Tip: Click the map to adjust the impact location. Parameters update the visualization immediately.
-                </p>
-              </CardContent>
-            </Card>
+          <Card className="h-fit">
+            <CardHeader>
+              <CardTitle>Step 7 of 7</CardTitle>
+              <CardDescription>Review the calculated impact effects for this meteor.</CardDescription>
+              <Progress value={100} className="w-full" />
+            </CardHeader>
+            <CardContent>
+              <ImpactResultsStep state={selectedMeteor} />
+              <div className="mt-6 flex justify-end">
+                <Button onClick={goHome}>Start Over</Button>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Impact Analysis Results</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  const impactInputs: ImpactInputs = {
-                    diameter: selectedMeteor.diameter_m,
-                    density: selectedMeteor.density_kgm3,
-                    velocity: selectedMeteor.velocity_kms * 1000, // Convert km/s to m/s
-                    angle: selectedMeteor.angle_deg,
-                  };
-
-                  const results = calculateImpact(impactInputs);
-
-                  return (
-                    <div className="space-y-4">
-                      <div className="grid gap-4">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-base">Basic Physics</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Mass:</span>
-                              <span className="font-medium">{results.mass.toExponential(2)} kg</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Kinetic Energy:</span>
-                              <span className="font-medium">{results.kineticEnergy.toExponential(2)} J</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">TNT Equivalent:</span>
-                              <span className="font-medium">{results.energyTNT.toExponential(2)} tons TNT</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Volcano Equivalent:</span>
-                              <span className="font-medium">{results.volcanoEquivalent.toFixed(2)} × Krakatoa</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-base">Crater & Damage</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Crater Diameter:</span>
-                              <span className="font-medium">{results.craterDiameter.toFixed(2)} km</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Severe Damage Radius:</span>
-                              <span className="font-medium">{results.severeDamageRadius.toFixed(2)} km</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">3rd Degree Burn Radius:</span>
-                              <span className="font-medium">{results.thirdDegreeBurnRadius.toFixed(2)} km</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">2nd Degree Burn Radius:</span>
-                              <span className="font-medium">{results.secondDegreeBurnRadius.toFixed(2)} km</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Noise Damage Radius:</span>
-                              <span className="font-medium">{results.noiseDamageRadius.toFixed(2)} km</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="text-base">Environmental Effects</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Ozone Depletion:</span>
-                              <span className="font-medium">~{results.ozoneDepletionPercent.toFixed(1)}%</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Acid Rain:</span>
-                              <span className="font-medium">{results.acidRainSeverity}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Climate Impact:</span>
-                              <span className="font-medium">{results.climateImpact}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground">
-                        🔬 Educational note: These values are approximate, based on scaling laws from 
-                        NASA, USGS, and peer-reviewed studies of Chicxulub, Tunguska, and Chelyabinsk events.
-                      </p>
-                    </div>
-                  );
-                })()}
-                <div className="mt-4">
-                  <Button onClick={goHome} className="w-full">
-                    Start Over
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div>
+          <div className="space-y-4">
             <MeteorVisualization
               state={selectedMeteor}
-              step={4}
+              step={6}
               onLocationSelect={handleLocationSelect}
-              showImpactEffects
+              showImpactEffects={shouldForceImpactEffects}
             />
+            <p className="text-xs text-muted-foreground">
+              Tip: Click the map to adjust the impact location and instantly update the destruction radii.
+            </p>
           </div>
         </div>
       </main>
@@ -509,13 +318,4 @@ export default function Page() {
   }
 
   return null;
-}
-
-function SummaryRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">{children}</div>
-    </div>
-  );
 }
