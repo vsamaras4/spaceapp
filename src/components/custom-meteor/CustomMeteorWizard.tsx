@@ -142,7 +142,7 @@ function DiameterStep({ state, setState }: { state: MeteorState; setState: (stat
         </div>
         <div className="mt-2 flex flex-wrap gap-2 text-xs">
           <Button type="button" variant="secondary" size="sm" onClick={() => set(MIN)}>min</Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => set(DIAMETER.avg)}>avg</Button>
+          {/* <Button type="button" variant="secondary" size="sm" onClick={() => set(DIAMETER.avg)}>avg</Button> */}
           <Button type="button" variant="secondary" size="sm" onClick={() => set(MAX)}>max</Button>
         </div>
       </div>
@@ -198,7 +198,7 @@ function VelocityStep({ state, setState }: { state: MeteorState; setState: (stat
         </div>
         <div className="mt-2 flex flex-wrap gap-2 text-xs">
           <Button type="button" variant="secondary" size="sm" onClick={() => set(MIN)}>min</Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => set(VELOCITY.avg)}>avg</Button>
+          {/* <Button type="button" variant="secondary" size="sm" onClick={() => set(VELOCITY.avg)}>avg</Button> */}
           <Button type="button" variant="secondary" size="sm" onClick={() => set(MAX)}>max</Button>
         </div>
       </div>
@@ -255,7 +255,7 @@ function AngleStep({ state, setState }: { state: MeteorState; setState: (state: 
         </div>
         <div className="mt-2 flex flex-wrap gap-2 text-xs">
           <Button type="button" variant="secondary" size="sm" onClick={() => set(MIN)}>min</Button>
-          <Button type="button" variant="secondary" size="sm" onClick={() => set(ANGLE.avg)}>avg</Button>
+          {/* <Button type="button" variant="secondary" size="sm" onClick={() => set(ANGLE.avg)}>avg</Button> */}
           <Button type="button" variant="secondary" size="sm" onClick={() => set(MAX)}>max</Button>
         </div>
       </div>
@@ -444,13 +444,13 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 function Hints({ step }: { step: WizardStep }) {
   return (
     <div className="mt-4 text-xs text-muted-foreground">
-      {step === 0 && <p>Tip: you can click min/avg/max to quickly test edge cases.</p>}
+      {/* {step === 0 && <p>Tip: you can click min/avg/max to quickly test edge cases.</p>}
       {step === 1 && <p>Tip: velocity increases tail length in the viz—purely illustrative.</p>}
       {step === 2 && <p>Tip: angle rotates the approach vector; ground appears only on this step.</p>}
       {step === 3 && <p>Tip: density affects impact energy—ice is lighter, iron is denser.</p>}
       {step === 4 && <p>Ready to select impact location on the world map.</p>}
       {step === 5 && <p>Click anywhere on the world map to select your impact location.</p>}
-      {step === 6 && <p>Impact simulation complete! The meteor has reached its destination.</p>}
+      {step === 6 && <p>Impact simulation complete! The meteor has reached its destination.</p>} */}
     </div>
   );
 }
